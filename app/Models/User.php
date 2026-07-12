@@ -7,6 +7,7 @@ use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use App\Models\Restaurant;
 
 class User extends Authenticatable
 {
@@ -22,28 +23,28 @@ class User extends Authenticatable
         'name',
         'email',
         'password',
+        'restaurant_id',
+        'role',
+        'avatar_initials',
+        'last_login_at',
     ];
 
     /**
-     * The attributes that should be hidden for serialization.
+     * The attributes that should be cast.
      *
-     * @var list<string>
+     * @var array<string, string>
      */
-    protected $hidden = [
-        'password',
-        'remember_token',
+    protected $casts = [
+        'email_verified_at' => 'datetime',
+        'last_login_at' => 'datetime',
+        'role' => 'string',
     ];
 
     /**
-     * Get the attributes that should be cast.
-     *
-     * @return array<string, string>
+     * Get the restaurant that owns the user.
      */
-    protected function casts(): array
+    public function restaurant()
     {
-        return [
-            'email_verified_at' => 'datetime',
-            'password' => 'hashed',
-        ];
+        return $this->belongsTo(Restaurant::class);
     }
 }

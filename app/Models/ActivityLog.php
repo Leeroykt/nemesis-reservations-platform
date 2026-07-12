@@ -3,9 +3,13 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use App\Models\Restaurant;  // <-- ADD THIS
+use App\Models\User;       // <-- ADD THIS
 
 class ActivityLog extends Model
 {
+    protected $table = 'activity_log';
+
     protected $fillable = [
         'restaurant_id',
         'actor_user_id',
@@ -14,7 +18,7 @@ class ActivityLog extends Model
         'tone',
         'description',
         'entity_type',
-        'entity_id'
+        'entity_id',
     ];
 
     protected $casts = [

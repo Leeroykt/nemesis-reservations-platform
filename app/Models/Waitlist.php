@@ -3,9 +3,12 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use App\Models\Restaurant;  // <-- ADD THIS
 
 class Waitlist extends Model
 {
+    protected $table = 'waitlist';  // <-- ADD THIS
+
     protected $fillable = [
         'restaurant_id',
         'name',
