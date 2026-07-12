@@ -1,0 +1,92 @@
+name: CI
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: nemesis_test
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: 8.3
+          extensions: pdo, pdo_pgsql, mbstring, xml, ctype, json
+          coverage: xdebug
+
+      - name: Cache Composer dependencies
+        uses: actions/cache@v3
+        with:
+          path: ~/.cache/composer
+          key: ${{ runner.os }}-composer-${{ hashFiles('**/composer.lock') }}
+          restore-keys: ${{ runner.os }}-composer-
+
+      - name: Install Composer dependencies
+        run: composer install --prefer-dist --no-progress --no-interaction
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+
+      - name: Install npm dependencies
+        run: npm install
+
+      - name: Copy .env
+        run: cp .env.example .env.test
+
+      - name: Generate application key
+        run: php artisan key:generate --env=test
+
+      - name: Run migrations
+        run: php artisan migrate:fresh --env=test
+        env:
+          DB_CONNECTION: pgsql
+          DB_HOST: 127.0.0.1
+          DB_PORT: 5432
+          DB_DATABASE: nemesis_test
+          DB_USERNAME: postgres
+          DB_PASSWORD: postgres
+
+      - name: Run Laravel Pint (linting)
+        run: composer run lint
+
+      - name: Run Larastan (static analysis)
+        run: composer run larastan
+
+      - name: Run Pest (backend tests)
+        run: php artisan test --env=test
+        env:
+          DB_CONNECTION: pgsql
+          DB_HOST: 127.0.0.1
+          DB_PORT: 5432
+          DB_DATABASE: nemesis_test
+          DB_USERNAME: postgres
+          DB_PASSWORD: postgres
+
+      - name: Run Vitest (frontend tests)
+        run: npm run test
+
+      - name: Build frontend
+        run: npm run build
