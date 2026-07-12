@@ -10,7 +10,7 @@ class Notification extends Model
         'restaurant_id',
         'title',
         'message',
-        'is_read'
+        'is_read',
     ];
 
     protected $casts = [

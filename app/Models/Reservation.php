@@ -23,7 +23,7 @@ class Reservation extends Model
         'status',
         'notes',
         'source',
-        'created_by_user_id'
+        'created_by_user_id',
     ];
 
     protected $casts = [

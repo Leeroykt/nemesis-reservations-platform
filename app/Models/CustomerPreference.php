@@ -8,7 +8,7 @@ class CustomerPreference extends Model
 {
     protected $fillable = [
         'customer_id',
-        'note'
+        'note',
     ];
 
     public function customer()

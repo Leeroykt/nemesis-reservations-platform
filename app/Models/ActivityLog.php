@@ -3,8 +3,9 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
-use App\Models\Restaurant;  // <-- ADD THIS
-use App\Models\User;       // <-- ADD THIS
+
+// <-- ADD THIS
+// <-- ADD THIS
 
 class ActivityLog extends Model
 {

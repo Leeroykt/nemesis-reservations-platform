@@ -17,7 +17,7 @@ class Table extends Model
         'shape',
         'pos_x',
         'pos_y',
-        'status'
+        'status',
     ];
 
     public function restaurant()

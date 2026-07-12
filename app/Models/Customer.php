@@ -17,13 +17,13 @@ class Customer extends Model
         'visits',
         'last_visit_at',
         'is_vip',
-        'lifetime_spend'
+        'lifetime_spend',
     ];
 
     protected $casts = [
         'is_vip' => 'boolean',
         'last_visit_at' => 'date',
-        'lifetime_spend' => 'decimal:2'
+        'lifetime_spend' => 'decimal:2',
     ];
 
     public function restaurant()

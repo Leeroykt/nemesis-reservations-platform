@@ -3,7 +3,8 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
-use App\Models\Restaurant;  // <-- ADD THIS
+
+// <-- ADD THIS
 
 class Waitlist extends Model
 {
@@ -17,7 +18,7 @@ class Waitlist extends Model
         'quoted_wait_minutes',
         'notes',
         'status',
-        'added_at'
+        'added_at',
     ];
 
     protected $casts = [

@@ -4,9 +4,11 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\LoginRequest;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\ValidationException;
+use Laravel\Sanctum\NewAccessToken;
 
 class AuthController extends Controller
 {
@@ -18,19 +20,22 @@ class AuthController extends Controller
     {
         $credentials = $request->only('email', 'password');
 
-        if (!Auth::attempt($credentials)) {
+        if (! Auth::attempt($credentials)) {
             throw ValidationException::withMessages([
                 'email' => ['The provided credentials are incorrect.'],
             ]);
         }
 
+        /** @var User $user */
         $user = Auth::user();
-        $token = $user->createToken('auth_token')->plainTextToken;
+
+        /** @var NewAccessToken $token */
+        $token = $user->createToken('auth_token');
 
         return response()->json([
             'data' => [
                 'user' => $user,
-                'token' => $token,
+                'token' => $token->plainTextToken,
             ],
         ]);
     }

@@ -11,15 +11,15 @@ return new class extends Migration
         Schema::table('users', function (Blueprint $table) {
             // Add restaurant_id foreign key
             $table->foreignId('restaurant_id')
-                  ->after('id')
-                  ->nullable()
-                  ->constrained()
-                  ->onDelete('cascade');
+                ->after('id')
+                ->nullable()
+                ->constrained()
+                ->onDelete('cascade');
 
             // Add role column
             $table->enum('role', ['owner', 'manager', 'host'])
-                  ->after('password')
-                  ->default('host');
+                ->after('password')
+                ->default('host');
 
             // Add avatar_initials
             $table->string('avatar_initials', 4)->nullable()->after('role');

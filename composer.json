@@ -73,7 +73,7 @@
                                                   "Illuminate\\Foundation\\ComposerScripts::prePackageUninstall"
                                               ],
                     "lint":  "pint",
-                    "larastan":  "phpstan analyse",
+                    "larastan": "phpstan analyse app --level=5",
                     "test":  "pest"
                 },
     "extra":  {

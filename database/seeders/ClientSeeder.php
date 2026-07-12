@@ -2,14 +2,11 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Seeder;
-use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\File;
 use App\Models\Restaurant;
-use App\Models\RestaurantHours;
-use App\Models\RestaurantRules;
 use App\Models\User;
-use App\Models\Table;
+use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\Hash;
 
 class ClientSeeder extends Seeder
 {
@@ -17,16 +14,18 @@ class ClientSeeder extends Seeder
     {
         $configPath = base_path('client-config/seed-config.json');
 
-        if (!File::exists($configPath)) {
+        if (! File::exists($configPath)) {
             $this->command->error('❌ client-config/seed-config.json not found!');
             $this->command->info('Copy seed-config.example.json to seed-config.json and fill in client data.');
+
             return;
         }
 
         $config = json_decode(File::get($configPath), true);
 
-        if (!$config) {
+        if (! $config) {
             $this->command->error('❌ Invalid JSON in seed-config.json');
+
             return;
         }
 
@@ -42,7 +41,7 @@ class ClientSeeder extends Seeder
             'seats' => $config['restaurant']['seats'] ?? 0,
             'tables_count' => $config['restaurant']['tables_count'] ?? 0,
             'logo_path' => $config['restaurant']['logo_path'] ?? null,
-            'primary_color_hex' => $config['restaurant']['primary_color_hex'] ?? '#C9A227'
+            'primary_color_hex' => $config['restaurant']['primary_color_hex'] ?? '#C9A227',
         ]);
 
         // 2. Create Restaurant Hours

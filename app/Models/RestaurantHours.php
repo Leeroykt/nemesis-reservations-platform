@@ -11,7 +11,7 @@ class RestaurantHours extends Model
         'day_of_week',
         'open_time',
         'close_time',
-        'is_closed'
+        'is_closed',
     ];
 
     public function restaurant()

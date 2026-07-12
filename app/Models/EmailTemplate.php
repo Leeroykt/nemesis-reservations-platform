@@ -11,7 +11,7 @@ class EmailTemplate extends Model
         'key',
         'name',
         'subject',
-        'body'
+        'body',
     ];
 
     public function restaurant()

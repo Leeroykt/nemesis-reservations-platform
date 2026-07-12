@@ -12,7 +12,7 @@ class RestaurantRules extends Model
         'slot_length_minutes',
         'buffer_minutes',
         'cancellation_window_hours',
-        'deposit_required_above'
+        'deposit_required_above',
     ];
 
     public function restaurant()

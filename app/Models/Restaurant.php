@@ -17,7 +17,7 @@ class Restaurant extends Model
         'seats',
         'tables_count',
         'logo_path',
-        'primary_color_hex'
+        'primary_color_hex',
     ];
 
     // ENTERPRISE RULEBOOK §3: Timezone accessor
