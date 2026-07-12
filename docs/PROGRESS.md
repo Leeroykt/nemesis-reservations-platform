@@ -194,19 +194,19 @@ These files were not explicitly listed in `03-PROJECT-STRUCTURE.md` but were add
 
 ## ✅ Phase 2.2 – Checklist
 
-### Docs: `04-ROADMAP.md` Phase 2
-
 | Item | Status | Notes |
 |------|--------|-------|
-| Implement `EnsureRole` middleware | ✅ | Created `app/Http/Middleware/EnsureRole.php` with role hierarchy (host < manager < owner) |
-| Register middleware in `bootstrap/app.php` | ✅ | Aliased as `role` |
-| Create `ReservationPolicy` | ✅ | Model-level permissions: viewAny, create, update, delete, restore, forceDelete |
-| Register policy in `AuthServiceProvider` | ✅ | Mapped `Reservation::class` to `ReservationPolicy::class` |
-| Create `RoleAccessTest.php` | ✅ | 7 tests covering host/manager/owner/unauthenticated access |
-| Update test annotations to PHPUnit attributes | ✅ | Replaced `/** @test */` with `#[Test]` for PHPUnit 11+ compatibility |
-| Test role gating manually and via tests | ✅ | All 7 tests pass (13 assertions) |
+| `EnsureRole` middleware implemented | ✅ | Role hierarchy: host (1) < manager (2) < owner (3) |
+| Middleware registered in `bootstrap/app.php` | ✅ | Aliased as `role` |
+| `ReservationPolicy` created | ✅ | viewAny, view, create, update, delete, restore, forceDelete |
+| Policy registered in `AuthServiceProvider` | ✅ | Mapped `Reservation::class` to `ReservationPolicy::class` |
+| `RoleAccessTest` created | ✅ | 7 tests covering host/manager/owner/unauthenticated access |
+| Test annotations updated to `#[Test]` attributes | ✅ | PHPUnit 11+ compatibility |
+| PHPStan errors fixed in `EnsureRole` and `User` | ✅ | Added PHPDoc `@property` and `@var` annotations |
+| All tests pass | ✅ | 7 passed, 13 assertions |
 
 **Comments:**
-- Added a test route `/api/v1/role-test` to demonstrate role enforcement. This is temporary and will be removed in Phase 4 when real routes are implemented.
+- Added temporary route `/api/v1/role-test` to demonstrate role enforcement (will be removed once real routes are built in Phase 3+).
 - The middleware and policies are fully functional and tested.
-- PHPUnit warnings about metadata docblocks are resolved by using `#[Test]` attributes.
+- All static analysis checks now pass at level 5.
+- The CI will run these checks on every push.

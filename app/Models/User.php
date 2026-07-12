@@ -11,9 +11,20 @@ use Laravel\Sanctum\HasApiTokens;
 use Laravel\Sanctum\PersonalAccessToken;
 
 /**
+ * @property int $id
+ * @property string $name
+ * @property string $email
+ * @property string $password
+ * @property int $restaurant_id
+ * @property string $role
+ * @property string|null $avatar_initials
+ * @property string|null $last_login_at
+ * @property string|null $remember_token
+ * @property \Illuminate\Support\Carbon|null $email_verified_at
+ * @property \Illuminate\Support\Carbon $created_at
+ * @property \Illuminate\Support\Carbon $updated_at
  * @method \Laravel\Sanctum\NewAccessToken createToken(string $name, array $abilities = ['*'])
- *
- * @property-read PersonalAccessToken $currentAccessToken
+ * @property-read \Laravel\Sanctum\PersonalAccessToken|null $currentAccessToken
  */
 class User extends Authenticatable
 {
