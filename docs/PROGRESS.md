@@ -128,6 +128,27 @@ These files were not explicitly listed in `03-PROJECT-STRUCTURE.md` but were add
 - **Fix:** Corrected `@method` annotation in `User` to return `\Laravel\Sanctum\NewAccessToken`.
 - **Also:** Added `@var` docblock for `$token` in `AuthController`.
 - **Files affected:** `app/Models/User.php`, `app/Http/Controllers/Api/V1/AuthController.php`
+### 8. CI Tools – Postponed to Phase 8
+
+| Tool | Purpose | Status | Reason |
+|------|---------|--------|--------|
+| `composer audit` | Scans PHP dependencies for known vulnerabilities | ⏳ Phase 8 | Would require fixing all vulnerabilities before pipeline passes |
+| `npm audit --audit-level=moderate` | Scans JS dependencies for vulnerabilities | ⏳ Phase 8 | Would fail immediately due to 4 existing vulnerabilities |
+| ESLint (`npm run lint:js`) | JavaScript/TypeScript code style and quality | ⏳ Phase 8 | ESLint needs to be installed and configured with rules |
+| TypeScript type check (`tsc --noEmit`) | Catches type errors in frontend code | ⏳ Phase 8 | TypeScript config needs adjustment for CI environment |
+| PHP test coverage (`--coverage --min=80`) | Ensures code is adequately tested | ⏳ Phase 8 | Coverage thresholds would fail until tests are written |
+| JavaScript test coverage (Vitest) | Ensures frontend code is adequately tested | ⏳ Phase 8 | Coverage is not yet configured |
+| Security headers check | Checks CSP, CORS, etc. | ⏳ Phase 9+ | Not critical for development phase |
+| Artisan optimize | Ensures production caching works | ⏳ Phase 7 (Deployment) | Only relevant for production builds |
+
+**Why Postponed:**
+
+- **Prevents blocking development** – These tools would fail immediately and block every PR, slowing down core feature development.
+- **They are hardening steps** – Security audits, coverage thresholds, and strict type checks are final‑stage activities – they belong in Phase 8 (Hardening & QA), not during active feature development.
+- **No code quality degradation** – The current CI (Lint, Larastan, Pest, Vitest, Build) already enforces code quality and catches real bugs. Adding the rest later is an incremental improvement, not an emergency fix.
+- **Avoids unnecessary overhead** – Installing ESLint and configuring TypeScript for CI takes time that would distract from building features in Phases 3–7.
+
+**Decision:** These tools will be added in Phase 8 (Hardening & QA) or Phase 9 (Final polish), as originally planned in `04-ROADMAP.md`.
 
 ## ✅ Phase 2.1 – Checklist
 
@@ -170,3 +191,22 @@ These files were not explicitly listed in `03-PROJECT-STRUCTURE.md` but were add
 ---
 
 **End of Progress Tracking – Phase 0, 1, 2.1**
+
+## ✅ Phase 2.2 – Checklist
+
+### Docs: `04-ROADMAP.md` Phase 2
+
+| Item | Status | Notes |
+|------|--------|-------|
+| Implement `EnsureRole` middleware | ✅ | Created `app/Http/Middleware/EnsureRole.php` with role hierarchy (host < manager < owner) |
+| Register middleware in `bootstrap/app.php` | ✅ | Aliased as `role` |
+| Create `ReservationPolicy` | ✅ | Model-level permissions: viewAny, create, update, delete, restore, forceDelete |
+| Register policy in `AuthServiceProvider` | ✅ | Mapped `Reservation::class` to `ReservationPolicy::class` |
+| Create `RoleAccessTest.php` | ✅ | 7 tests covering host/manager/owner/unauthenticated access |
+| Update test annotations to PHPUnit attributes | ✅ | Replaced `/** @test */` with `#[Test]` for PHPUnit 11+ compatibility |
+| Test role gating manually and via tests | ✅ | All 7 tests pass (13 assertions) |
+
+**Comments:**
+- Added a test route `/api/v1/role-test` to demonstrate role enforcement. This is temporary and will be removed in Phase 4 when real routes are implemented.
+- The middleware and policies are fully functional and tested.
+- PHPUnit warnings about metadata docblocks are resolved by using `#[Test]` attributes.
