@@ -17,7 +17,7 @@ class ReservationResource extends JsonResource
             'date' => $this->date,
             'time' => $this->time,
             'party_size' => $this->party_size,
-            'status' => $this->status,
+            'status' => $this->status, // ✅ FIXED
             'notes' => $this->notes,
             'source' => $this->source,
             'created_at' => $this->created_at,

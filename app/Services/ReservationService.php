@@ -10,11 +10,6 @@ use Illuminate\Validation\ValidationException;
 
 class ReservationService
 {
-    /**
-     * Find conflicting tables for a given date/time/party.
-     *
-     * @return array<int> – table IDs that conflict
-     */
     public static function findConflicts(
         Restaurant $restaurant,
         string $date,
@@ -26,7 +21,15 @@ class ReservationService
         $utcStart = TimezoneService::toUtc($date, $time, $restaurant->timezone);
         $utcEnd = $utcStart->copy()->addMinutes($slotMinutes);
 
-        // Get all reservations on that date that are not cancelled/soft-deleted
+        // 🔍 DEBUG: Uncomment to see what's being queried
+        // dump([
+        //     'date' => $date,
+        //     'time' => $time,
+        //     'utcStart' => $utcStart->toDateTimeString(),
+        //     'utcEnd' => $utcEnd->toDateTimeString(),
+        //     'slotMinutes' => $slotMinutes,
+        // ]);
+
         $query = Reservation::where('restaurant_id', $restaurant->id)
             ->where('date', $date)
             ->whereNotIn('status', ['Cancelled'])
@@ -38,26 +41,34 @@ class ReservationService
 
         $reservations = $query->get();
 
+        // 🔍 DEBUG: Uncomment to see found reservations
+        // dump($reservations->toArray());
+
         $conflictingTableIds = [];
 
         foreach ($reservations as $reservation) {
+            if (!$reservation->table_id) {
+                continue;
+            }
             $resUtcStart = TimezoneService::toUtc($reservation->date, $reservation->time, $restaurant->timezone);
             $resUtcEnd = $resUtcStart->copy()->addMinutes($slotMinutes);
 
-            // Check overlap
+            // 🔍 DEBUG: Uncomment to see overlap checks
+            // dump([
+            //     'reservation_id' => $reservation->id,
+            //     'resUtcStart' => $resUtcStart->toDateTimeString(),
+            //     'resUtcEnd' => $resUtcEnd->toDateTimeString(),
+            //     'overlap' => $utcStart < $resUtcEnd && $utcEnd > $resUtcStart,
+            // ]);
+
             if ($utcStart < $resUtcEnd && $utcEnd > $resUtcStart) {
-                if ($reservation->table_id) {
-                    $conflictingTableIds[] = $reservation->table_id;
-                }
+                $conflictingTableIds[] = $reservation->table_id;
             }
         }
 
         return array_unique($conflictingTableIds);
     }
 
-    /**
-     * Find an available table that fits the party.
-     */
     public static function findAvailableTable(
         Restaurant $restaurant,
         int $partySize,
@@ -81,16 +92,11 @@ class ReservationService
         return null;
     }
 
-    /**
-     * Validate a reservation request.
-     *
-     * @throws ValidationException
-     */
-    public static function validateReservation(array $data, Restaurant $restaurant): void
+    public static function validateReservation(array &$data, Restaurant $restaurant): void
     {
         $rules = $restaurant->rules;
 
-        // Party size
+        // Validate party size
         if ($data['party_size'] > $rules->max_party_size) {
             throw ValidationException::withMessages([
                 'party_size' => "Maximum party size is {$rules->max_party_size}.",
@@ -103,7 +109,7 @@ class ReservationService
             ]);
         }
 
-        // Date must be today or future
+        // Validate date is not in the past
         $today = Carbon::now($restaurant->timezone)->toDateString();
         if ($data['date'] < $today) {
             throw ValidationException::withMessages([
@@ -111,10 +117,7 @@ class ReservationService
             ]);
         }
 
-        // Time must be within opening hours (simplified – we could check hours later)
-        // We'll skip hour validation for now to keep it simple.
-
-        // Check if table is assigned and conflict-free
+        // If a specific table is provided, check conflicts
         if (!empty($data['table_id'])) {
             $table = Table::find($data['table_id']);
             if (!$table || $table->restaurant_id != $restaurant->id) {
@@ -123,22 +126,30 @@ class ReservationService
                 ]);
             }
 
+            // 🔥 CRITICAL: Check conflicts on ALL tables (do NOT exclude the chosen table)
             $conflicts = self::findConflicts(
                 $restaurant,
                 $data['date'],
                 $data['time'],
                 $data['party_size'],
                 $rules->slot_length_minutes,
-                $table
+                null // <- DO NOT EXCLUDE
             );
 
-            if (!empty($conflicts)) {
+            // 🔍 DEBUG: Uncomment to see conflicts
+            // dump([
+            //     'table_id' => $table->id,
+            //     'conflicts' => $conflicts,
+            //     'in_array' => in_array($table->id, $conflicts),
+            // ]);
+
+            if (in_array($table->id, $conflicts)) {
                 throw ValidationException::withMessages([
                     'table_id' => 'This table is already booked at that time.',
                 ]);
             }
         } else {
-            // Auto-assign if no table provided
+            // Auto-assign a table
             $autoTable = self::findAvailableTable(
                 $restaurant,
                 $data['party_size'],
@@ -153,43 +164,11 @@ class ReservationService
                 ]);
             }
 
-            // We'll set it later in the controller.
             $data['auto_assigned_table_id'] = $autoTable->id;
         }
     }
 
-    /**
-     * Create a reservation with validation.
-     */
-    public static function createReservation(array $data, Restaurant $restaurant): Reservation
-    {
-        self::validateReservation($data, $restaurant);
-
-        // If auto-assigned, set table_id
-        if (empty($data['table_id']) && isset($data['auto_assigned_table_id'])) {
-            $data['table_id'] = $data['auto_assigned_table_id'];
-        }
-
-        // Generate public_ref
-        $data['public_ref'] = self::generatePublicRef($restaurant);
-
-        // Set source if not provided
-        if (empty($data['source'])) {
-            $data['source'] = 'App';
-        }
-
-        // Set status if not provided (default Upcoming)
-        if (empty($data['status'])) {
-            $data['status'] = 'Upcoming';
-        }
-
-        return $restaurant->reservations()->create($data);
-    }
-
-    /**
-     * Generate a unique public reference.
-     */
-    private static function generatePublicRef(Restaurant $restaurant): string
+    public static function generatePublicRef(Restaurant $restaurant): string
     {
         do {
             $ref = 'RB-' . str_pad(random_int(1000, 9999), 4, '0', STR_PAD_LEFT);
