@@ -16,34 +16,27 @@ class ReservationService
         string $time,
         int $partySize,
         int $slotMinutes,
-        ?Table $excludeTable = null
+        ?Table $excludeTable = null,
+        ?int $tableId = null
     ): array {
         $utcStart = TimezoneService::toUtc($date, $time, $restaurant->timezone);
         $utcEnd = $utcStart->copy()->addMinutes($slotMinutes);
-
-        // 🔍 DEBUG: Uncomment to see what's being queried
-        // dump([
-        //     'date' => $date,
-        //     'time' => $time,
-        //     'utcStart' => $utcStart->toDateTimeString(),
-        //     'utcEnd' => $utcEnd->toDateTimeString(),
-        //     'slotMinutes' => $slotMinutes,
-        // ]);
 
         $query = Reservation::where('restaurant_id', $restaurant->id)
             ->where('date', $date)
             ->whereNotIn('status', ['Cancelled'])
             ->whereNull('deleted_at');
 
+        if ($tableId !== null) {
+            $query->where('table_id', $tableId);
+        }
+
         if ($excludeTable) {
             $query->where('table_id', '!=', $excludeTable->id);
         }
 
+        /** @var \Illuminate\Database\Eloquent\Collection<int, Reservation> $reservations */
         $reservations = $query->get();
-
-        // 🔍 DEBUG: Uncomment to see found reservations
-        // dump($reservations->toArray());
-
         $conflictingTableIds = [];
 
         foreach ($reservations as $reservation) {
@@ -52,14 +45,6 @@ class ReservationService
             }
             $resUtcStart = TimezoneService::toUtc($reservation->date, $reservation->time, $restaurant->timezone);
             $resUtcEnd = $resUtcStart->copy()->addMinutes($slotMinutes);
-
-            // 🔍 DEBUG: Uncomment to see overlap checks
-            // dump([
-            //     'reservation_id' => $reservation->id,
-            //     'resUtcStart' => $resUtcStart->toDateTimeString(),
-            //     'resUtcEnd' => $resUtcEnd->toDateTimeString(),
-            //     'overlap' => $utcStart < $resUtcEnd && $utcEnd > $resUtcStart,
-            // ]);
 
             if ($utcStart < $resUtcEnd && $utcEnd > $resUtcStart) {
                 $conflictingTableIds[] = $reservation->table_id;
@@ -76,12 +61,13 @@ class ReservationService
         string $time,
         int $slotMinutes
     ): ?Table {
+        /** @var \Illuminate\Database\Eloquent\Collection<int, Table> $tables */
         $tables = Table::where('restaurant_id', $restaurant->id)
             ->where('capacity', '>=', $partySize)
             ->where('status', 'Available')
             ->get();
 
-        $conflictingIds = self::findConflicts($restaurant, $date, $time, $partySize, $slotMinutes);
+        $conflictingIds = self::findConflicts($restaurant, $date, $time, $partySize, $slotMinutes, null, null);
 
         foreach ($tables as $table) {
             if (!in_array($table->id, $conflictingIds)) {
@@ -96,7 +82,6 @@ class ReservationService
     {
         $rules = $restaurant->rules;
 
-        // Validate party size
         if ($data['party_size'] > $rules->max_party_size) {
             throw ValidationException::withMessages([
                 'party_size' => "Maximum party size is {$rules->max_party_size}.",
@@ -109,7 +94,6 @@ class ReservationService
             ]);
         }
 
-        // Validate date is not in the past
         $today = Carbon::now($restaurant->timezone)->toDateString();
         if ($data['date'] < $today) {
             throw ValidationException::withMessages([
@@ -117,8 +101,8 @@ class ReservationService
             ]);
         }
 
-        // If a specific table is provided, check conflicts
         if (!empty($data['table_id'])) {
+            /** @var Table|null $table */
             $table = Table::find($data['table_id']);
             if (!$table || $table->restaurant_id != $restaurant->id) {
                 throw ValidationException::withMessages([
@@ -126,22 +110,15 @@ class ReservationService
                 ]);
             }
 
-            // 🔥 CRITICAL: Check conflicts on ALL tables (do NOT exclude the chosen table)
             $conflicts = self::findConflicts(
                 $restaurant,
                 $data['date'],
                 $data['time'],
                 $data['party_size'],
                 $rules->slot_length_minutes,
-                null // <- DO NOT EXCLUDE
+                null,
+                $table->id
             );
-
-            // 🔍 DEBUG: Uncomment to see conflicts
-            // dump([
-            //     'table_id' => $table->id,
-            //     'conflicts' => $conflicts,
-            //     'in_array' => in_array($table->id, $conflicts),
-            // ]);
 
             if (in_array($table->id, $conflicts)) {
                 throw ValidationException::withMessages([
@@ -149,7 +126,6 @@ class ReservationService
                 ]);
             }
         } else {
-            // Auto-assign a table
             $autoTable = self::findAvailableTable(
                 $restaurant,
                 $data['party_size'],
@@ -171,7 +147,7 @@ class ReservationService
     public static function generatePublicRef(Restaurant $restaurant): string
     {
         do {
-            $ref = 'RB-' . str_pad(random_int(1000, 9999), 4, '0', STR_PAD_LEFT);
+            $ref = 'RB-' . str_pad((string) random_int(1000, 9999), 4, '0', STR_PAD_LEFT);
         } while (Reservation::where('restaurant_id', $restaurant->id)->where('public_ref', $ref)->exists());
 
         return $ref;

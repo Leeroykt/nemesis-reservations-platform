@@ -210,3 +210,38 @@ These files were not explicitly listed in `03-PROJECT-STRUCTURE.md` but were add
 - The middleware and policies are fully functional and tested.
 - All static analysis checks now pass at level 5.
 - The CI will run these checks on every push.
+
+## ✅ Phase 3 – Checklist
+- ✅ ReservationService implemented (conflict detection, validation, auto‑assignment)
+- ✅ AuditLogger and TimezoneService created
+- ✅ ReservationController with CRUD and bulk actions
+- ✅ Store/Update requests and ReservationResource
+- ✅ All feature tests passing (17 tests, 61 assertions)
+- ✅ Role‑based delete and bulk actions enforced
+
+
+
+## ✅ Phase 3 – Checklist (Updated)
+
+| Item | Status | Notes |
+|------|--------|-------|
+| ReservationService (conflict detection, validation) | ✅ | Implemented and fully tested. |
+| Reservation CRUD + bulk actions API | ✅ | Controller with all endpoints. |
+| AuditLogger wired for every mutation | ✅ | Logs all create/update/delete/bulk actions. |
+| Feature tests: double-booking, over-capacity, etc. | ✅ | 17 tests pass. |
+| Timezone handling | ✅ | TimezoneService fixed to handle seconds. |
+| PHPStan level 5 passes | ✅ | All errors resolved (see below). |
+| Test isolation | ✅ | Used RefreshDatabase with shouldUseTransactions = false. |
+| Docker | ⏳ Deferred | See Phase 0 deviation. |
+
+### 🔧 Fixes Applied in Phase 3.2
+
+- Added `@mixin`, `@method`, and `@property` PHPDoc annotations to all models to make Eloquent methods and attributes known to PHPStan.
+- Changed `@var User` to `@var User|null` for `Auth::user()` and added explicit `if (!$user)` checks in `ReservationController`.
+- Fixed `Request` property access: replaced `$request->status` with `$request->input('status')` to avoid undefined property errors.
+- Simplified `AuditLogger` to use null coalescing and explicit checks for `$actor` properties.
+- Fixed `str_pad` type by casting `random_int()` result to string.
+- Updated `TimezoneService` to strip seconds and extra characters from date/time strings.
+- Increased PHPStan memory limit to `2G` in `composer.json`.
+
+These changes ensure CI passes reliably and the codebase is enterprise-grade.

@@ -4,6 +4,38 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 
+/**
+ * @mixin \Illuminate\Database\Eloquent\Builder
+ * @mixin \Illuminate\Database\Eloquent\Model
+ *
+ * @method static \Illuminate\Database\Eloquent\Model|null find($id)
+ * @method static \Illuminate\Database\Eloquent\Builder where($column, $operator = null, $value = null, $boolean = 'and')
+ *
+ * @property int $id
+ * @property string $name
+ * @property string|null $tagline
+ * @property string|null $email
+ * @property string|null $phone
+ * @property string|null $address
+ * @property string $timezone
+ * @property string $currency
+ * @property int $seats
+ * @property int $tables_count
+ * @property string|null $logo_path
+ * @property string $primary_color_hex
+ * @property \Illuminate\Support\Carbon $created_at
+ * @property \Illuminate\Support\Carbon $updated_at
+ * @property-read \App\Models\RestaurantRules|null $rules
+ * @property-read \Illuminate\Database\Eloquent\Collection|\App\Models\RestaurantHours[] $hours
+ * @property-read \Illuminate\Database\Eloquent\Collection|\App\Models\User[] $users
+ * @property-read \Illuminate\Database\Eloquent\Collection|\App\Models\Table[] $tables
+ * @property-read \Illuminate\Database\Eloquent\Collection|\App\Models\Reservation[] $reservations
+ * @property-read \Illuminate\Database\Eloquent\Collection|\App\Models\Customer[] $customers
+ * @property-read \Illuminate\Database\Eloquent\Collection|\App\Models\Notification[] $notifications
+ * @property-read \Illuminate\Database\Eloquent\Collection|\App\Models\ActivityLog[] $activityLog
+ * @property-read \Illuminate\Database\Eloquent\Collection|\App\Models\Waitlist[] $waitlist
+ * @property-read \Illuminate\Database\Eloquent\Collection|\App\Models\EmailTemplate[] $emailTemplates
+ */
 class Restaurant extends Model
 {
     protected $fillable = [
@@ -20,13 +52,11 @@ class Restaurant extends Model
         'primary_color_hex',
     ];
 
-    // ENTERPRISE RULEBOOK §3: Timezone accessor
     public function getTimezone(): string
     {
         return $this->timezone ?? 'Africa/Harare';
     }
 
-    // Relationships
     public function hours()
     {
         return $this->hasMany(RestaurantHours::class);

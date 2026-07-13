@@ -8,67 +8,87 @@ use App\Http\Requests\UpdateReservationRequest;
 use App\Http\Resources\ReservationResource;
 use App\Models\Reservation;
 use App\Models\Restaurant;
+use App\Models\User;
 use App\Services\AuditLogger;
 use App\Services\ReservationService;
+use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\ValidationException;
-use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 
 class ReservationController extends Controller
 {
     use AuthorizesRequests;
 
-    /**
-     * List reservations (paginated, filterable).
-     */
     public function index(Request $request)
     {
+        /** @var User|null $user */
         $user = Auth::user();
+
+        if (!$user) {
+            abort(401, 'Unauthenticated.');
+        }
+
+        /** @var Restaurant|null $restaurant */
         $restaurant = Restaurant::find($user->restaurant_id);
 
+        if (!$restaurant) {
+            abort(404, 'Restaurant not found.');
+        }
+
         $query = Reservation::where('restaurant_id', $restaurant->id)
-            ->with(['customer', 'table', 'createdBy']);
+            ->with(['table', 'createdBy']);
 
         if ($request->has('status')) {
-            $query->where('status', $request->status);
+            $query->where('status', $request->input('status'));
         }
 
         if ($request->has('from')) {
-            $query->whereDate('date', '>=', $request->from);
+            $query->whereDate('date', '>=', $request->input('from'));
         }
         if ($request->has('to')) {
-            $query->whereDate('date', '<=', $request->to);
+            $query->whereDate('date', '<=', $request->input('to'));
         }
 
         if ($request->has('search')) {
-            $query->where('guest_name', 'like', '%' . $request->search . '%');
+            $query->where('guest_name', 'like', '%' . $request->input('search') . '%');
         }
 
-        $perPage = $request->get('per_page', 25);
+        $perPage = $request->input('per_page', 25);
         $reservations = $query->orderBy('date', 'desc')->orderBy('time', 'desc')->paginate($perPage);
 
         return ReservationResource::collection($reservations);
     }
 
-    /**
-     * Create a reservation.
-     */
     public function store(StoreReservationRequest $request)
     {
+        /** @var User|null $user */
         $user = Auth::user();
+
+        if (!$user) {
+            abort(401, 'Unauthenticated.');
+        }
+
+        /** @var Restaurant|null $restaurant */
         $restaurant = Restaurant::find($user->restaurant_id);
+
+        if (!$restaurant) {
+            abort(404, 'Restaurant not found.');
+        }
 
         $data = $request->validated();
         $data['created_by_user_id'] = $user->id;
         $data['restaurant_id'] = $restaurant->id;
 
-        // Validate and auto-assign via service
         ReservationService::validateReservation($data, $restaurant);
 
         if (isset($data['auto_assigned_table_id'])) {
             $data['table_id'] = $data['auto_assigned_table_id'];
             unset($data['auto_assigned_table_id']);
+        }
+
+        if (empty($data['status'])) {
+            $data['status'] = 'Upcoming';
         }
 
         $data['public_ref'] = ReservationService::generatePublicRef($restaurant);
@@ -84,27 +104,32 @@ class ReservationController extends Controller
             'gold'
         );
 
-        return new ReservationResource($reservation->load(['customer', 'table', 'createdBy']));
+        return new ReservationResource($reservation->load(['table', 'createdBy']));
     }
 
-    /**
-     * Show a single reservation.
-     */
     public function show(Reservation $reservation)
     {
         $this->authorize('view', $reservation);
-        return new ReservationResource($reservation->load(['customer', 'table', 'createdBy']));
+        return new ReservationResource($reservation->load(['table', 'createdBy']));
     }
 
-    /**
-     * Update a reservation.
-     */
     public function update(UpdateReservationRequest $request, Reservation $reservation)
     {
         $this->authorize('update', $reservation);
 
+        /** @var User|null $user */
         $user = Auth::user();
+
+        if (!$user) {
+            abort(401, 'Unauthenticated.');
+        }
+
+        /** @var Restaurant|null $restaurant */
         $restaurant = Restaurant::find($user->restaurant_id);
+
+        if (!$restaurant) {
+            abort(404, 'Restaurant not found.');
+        }
 
         $data = $request->validated();
 
@@ -124,17 +149,20 @@ class ReservationController extends Controller
             'slate'
         );
 
-        return new ReservationResource($reservation->load(['customer', 'table', 'createdBy']));
+        return new ReservationResource($reservation->load(['table', 'createdBy']));
     }
 
-    /**
-     * Delete a reservation (soft-delete) – manager+ only.
-     */
     public function destroy(Reservation $reservation)
     {
         $this->authorize('delete', $reservation);
 
+        /** @var User|null $user */
         $user = Auth::user();
+
+        if (!$user) {
+            abort(401, 'Unauthenticated.');
+        }
+
         $reservation->delete();
 
         AuditLogger::log(
@@ -149,12 +177,15 @@ class ReservationController extends Controller
         return response()->json(['message' => 'Reservation deleted.']);
     }
 
-    /**
-     * Bulk actions: confirm, cancel, delete (manager+).
-     */
     public function bulk(Request $request)
     {
+        /** @var User|null $user */
         $user = Auth::user();
+
+        if (!$user) {
+            abort(401, 'Unauthenticated.');
+        }
+
         $action = $request->input('action');
         $ids = $request->input('ids', []);
 
@@ -194,13 +225,13 @@ class ReservationController extends Controller
 
         AuditLogger::log(
             $user,
-            "Bulk $action on " . count($ids) . " reservation(s)",
+            "Bulk $action on " . count($ids) . ' reservation(s)',
             'reservation',
             null,
             'bi-layers',
             'slate'
         );
 
-        return response()->json(['message' => "$action completed for " . count($ids) . " reservation(s)."]);
+        return response()->json(['message' => "$action completed for " . count($ids) . ' reservation(s).']);
     }
 }

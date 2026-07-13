@@ -13,7 +13,9 @@ class RoleAccessTest extends TestCase
     use RefreshDatabase;
 
     private User $host;
+
     private User $manager;
+
     private User $owner;
 
     protected function setUp(): void

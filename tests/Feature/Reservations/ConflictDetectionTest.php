@@ -14,14 +14,22 @@ class ConflictDetectionTest extends TestCase
 {
     use RefreshDatabase;
 
+    protected bool $shouldUseTransactions = false;
+
     protected Restaurant $restaurant;
+
     protected User $owner;
+
     protected Table $table;
 
     protected function setUp(): void
     {
         parent::setUp();
-        $this->seed();
+
+        // Force fresh migration and seeding
+        $this->artisan('migrate:fresh');
+        $this->artisan('db:seed');
+
         $this->restaurant = Restaurant::first();
         $this->owner = User::where('role', 'owner')->first();
         $this->actingAs($this->owner, 'sanctum');

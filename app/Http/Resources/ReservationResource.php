@@ -4,6 +4,9 @@ namespace App\Http\Resources;
 
 use Illuminate\Http\Resources\Json\JsonResource;
 
+/**
+ * @mixin \App\Models\Reservation
+ */
 class ReservationResource extends JsonResource
 {
     public function toArray($request): array
@@ -17,7 +20,7 @@ class ReservationResource extends JsonResource
             'date' => $this->date,
             'time' => $this->time,
             'party_size' => $this->party_size,
-            'status' => $this->status, // ✅ FIXED
+            'status' => $this->status,
             'notes' => $this->notes,
             'source' => $this->source,
             'created_at' => $this->created_at,

@@ -2,7 +2,6 @@
 
 namespace Tests\Feature\Reservations;
 
-use App\Models\Reservation;
 use App\Models\Restaurant;
 use App\Models\Table;
 use App\Models\User;
@@ -14,13 +13,20 @@ class CreateReservationTest extends TestCase
 {
     use RefreshDatabase;
 
+    protected bool $shouldUseTransactions = false;
+
     protected Restaurant $restaurant;
+
     protected User $owner;
 
     protected function setUp(): void
     {
         parent::setUp();
-        $this->seed();
+
+        // Force fresh migration and seeding
+        $this->artisan('migrate:fresh');
+        $this->artisan('db:seed');
+
         $this->restaurant = Restaurant::first();
         $this->owner = User::where('role', 'owner')->first();
         $this->actingAs($this->owner, 'sanctum');
@@ -41,11 +47,10 @@ class CreateReservationTest extends TestCase
         ];
 
         $response = $this->postJson('/api/v1/reservations', $data);
-
         $response->assertStatus(201)
             ->assertJsonPath('data.guest_name', 'Test Guest')
             ->assertJsonPath('data.party_size', 4)
-            ->assertJsonPath('data.status', 'Upcoming') // ✅ This will now pass
+            ->assertJsonPath('data.status', 'Upcoming')
             ->assertJsonPath('data.source', 'Website')
             ->assertJsonStructure(['data' => ['id', 'public_ref', 'guest_name', 'date', 'time', 'party_size', 'status']]);
 
@@ -135,7 +140,7 @@ class CreateReservationTest extends TestCase
         $response = $this->postJson('/api/v1/reservations', $data);
         $response->assertStatus(201)
             ->assertJsonPath('data.table.id', function ($id) {
-                return !is_null($id);
+                return ! is_null($id);
             });
     }
 

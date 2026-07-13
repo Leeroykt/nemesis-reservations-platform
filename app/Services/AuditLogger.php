@@ -8,23 +8,23 @@ use Illuminate\Support\Facades\Auth;
 
 class AuditLogger
 {
-    /**
-     * Log an activity entry.
-     */
     public static function log(
         ?User $actor,
         string $description,
-        string $entityType = null,
-        int $entityId = null,
+        ?string $entityType = null,
+        ?int $entityId = null,
         string $icon = 'bi-info-circle',
         string $tone = 'slate'
     ): void {
-        $actor = $actor ?: Auth::user();
+        $actor = $actor ?? Auth::user();
+
+        /** @var User|null $actor */
+        $actor = $actor;
 
         ActivityLog::create([
-            'restaurant_id' => $actor?->restaurant_id ?? 1, // fallback to first restaurant (will be adjusted)
+            'restaurant_id' => $actor ? $actor->restaurant_id : 1,
             'actor_user_id' => $actor?->id,
-            'actor_label' => $actor?->name ?? 'System',
+            'actor_label' => $actor ? $actor->name : 'System',
             'icon' => $icon,
             'tone' => $tone,
             'description' => $description,

@@ -8,9 +8,14 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
-use Laravel\Sanctum\PersonalAccessToken;
 
 /**
+ * @mixin \Illuminate\Database\Eloquent\Builder
+ * @mixin \Illuminate\Database\Eloquent\Model
+ *
+ * @method static \Illuminate\Database\Eloquent\Model|null find($id)
+ * @method static \Illuminate\Database\Eloquent\Builder where($column, $operator = null, $value = null, $boolean = 'and')
+ *
  * @property int $id
  * @property string $name
  * @property string $email
@@ -23,19 +28,13 @@ use Laravel\Sanctum\PersonalAccessToken;
  * @property \Illuminate\Support\Carbon|null $email_verified_at
  * @property \Illuminate\Support\Carbon $created_at
  * @property \Illuminate\Support\Carbon $updated_at
+ * @property-read \App\Models\Restaurant $restaurant
  * @method \Laravel\Sanctum\NewAccessToken createToken(string $name, array $abilities = ['*'])
- * @property-read \Laravel\Sanctum\PersonalAccessToken|null $currentAccessToken
  */
 class User extends Authenticatable
 {
-    /** @use HasFactory<UserFactory> */
     use HasApiTokens, HasFactory, Notifiable;
 
-    /**
-     * The attributes that are mass assignable.
-     *
-     * @var list<string>
-     */
     protected $fillable = [
         'name',
         'email',
@@ -46,20 +45,12 @@ class User extends Authenticatable
         'last_login_at',
     ];
 
-    /**
-     * The attributes that should be cast.
-     *
-     * @var array<string, string>
-     */
     protected $casts = [
         'email_verified_at' => 'datetime',
         'last_login_at' => 'datetime',
         'role' => 'string',
     ];
 
-    /**
-     * Get the restaurant that owns the user.
-     */
     public function restaurant()
     {
         return $this->belongsTo(Restaurant::class);

@@ -73,7 +73,7 @@
                                                   "Illuminate\\Foundation\\ComposerScripts::prePackageUninstall"
                                               ],
                     "lint":  "pint",
-                    "larastan": "phpstan analyse app --level=5",
+                    "larastan": "phpstan analyse app --level=5 --memory-limit=2G",
                     "test":  "pest"
                 },
     "extra":  {
