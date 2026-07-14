@@ -46,7 +46,7 @@ class PublicReservationController extends Controller
             actorLabel: 'Guest (website)'
         );
 
-        // Staff notification
+        // Staff notification – use the plain date string
         Notification::create([
             'restaurant_id' => $restaurant->id,
             'title' => 'New booking',

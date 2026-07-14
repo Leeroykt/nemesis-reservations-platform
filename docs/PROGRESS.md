@@ -200,3 +200,98 @@ These files were not explicitly listed in `03-PROJECT-STRUCTURE.md` but were add
 ---
 
 **End of Progress Tracking – Phase 0, 1, 2, 3 Complete; Phase 4 in Progress**
+
+## ✅ Phase 4 – Checklist
+
+| Item | Status |
+|------|--------|
+| API client (`api.ts`) | ✅ |
+| `useAuth` hook | ✅ |
+| `useApi` hook | ✅ |
+| Overview page | ✅ |
+| Reservations page | ✅ |
+| Calendar page | ✅ |
+| Tables page | ✅ |
+| Customers page | ✅ |
+| Analytics page | ✅ |
+| Frontend tests (11 tests) | ✅ |
+
+---
+
+## ✅ Phase 5 – Checklist
+
+| Item | Status |
+|------|--------|
+| Public booking page (`/book`) | ✅ |
+| `PublicReservationController` | ✅ |
+| `StorePublicReservationRequest` | ✅ |
+| `BookingConfirmed` Mailable | ✅ |
+| Email template view | ✅ |
+| Staff notifications | ✅ |
+| Audit logging with guest labels | ✅ |
+| Rate limiting (5/minute) | ✅ |
+| `lockForUpdate()` + transaction | ✅ |
+| Boundary conflict tests | ✅ |
+| Timezone tests | ✅ |
+| Concurrency tests | ✅ |
+| Public booking tests (35 tests) | ✅ |
+
+---
+
+## 📊 Test Summary
+
+| Test Suite | Tests | Status |
+|------------|-------|--------|
+| Unit Tests | 2 | ✅ PASS |
+| Feature Tests | 99 | ✅ PASS |
+| Frontend Tests | 11 | ✅ PASS |
+| **Total** | **112** | ✅ **All Passing** |
+
+---
+
+## 🚀 Next Steps
+
+1. **Phase 6** – Settings, Roles Admin, Audit Log
+2. **Phase 7** – White-label & Deployment Automation
+3. **Phase 8** – Hardening & QA Pass
+4. **Phase 9** – Freeze, Tag v1.0.0, Stage, Sell
+
+---
+
+**End of Progress Tracking – Phases 0-5 Complete ✅**
+
+📁 Step 4: Commit Everything
+bash
+
+git add .
+git commit -m "Phase 5 Complete: Enterprise-Grade Public Booking with Concurrency Protection
+
+✅ Backend Features:
+- Public booking endpoint with rate limiting (5/min)
+- Email confirmation with DB templates
+- Staff notifications for new bookings
+- Audit logging with guest labels
+- Race condition protection with lockForUpdate() + DB::transaction()
+- Boundary conflict tests (back-to-back, 1-minute overlap)
+- Timezone tests (non-UTC, midnight boundary)
+- Concurrency tests for double-booking prevention
+
+✅ Frontend Features:
+- Public booking page (/book)
+- Complete dashboard screens: Overview, Reservations, Calendar, Tables, Customers, Analytics
+- API client, useAuth, useApi hooks
+- 11 frontend tests passing
+
+✅ Test Summary:
+- 2 Unit tests passing
+- 99 Feature tests passing (including 35 PublicBookingTest)
+- 11 Frontend tests passing
+- 112 total tests passing
+
+✅ Documentation:
+- Updated PROGRESS.md with all phases
+- Added enterprise-grade concurrency protection notes
+
+Next: Phase 6 - Settings, Roles Admin, Audit Log"
+
+bash

@@ -7,6 +7,7 @@ use App\Models\Restaurant;
 use App\Models\Table;
 use Carbon\Carbon;
 use Illuminate\Validation\ValidationException;
+use Illuminate\Support\Facades\DB;
 
 class ReservationService
 {
@@ -19,13 +20,19 @@ class ReservationService
         ?Table $excludeTable = null,
         ?int $tableId = null
     ): array {
-        $utcStart = TimezoneService::toUtc($date, $time, $restaurant->timezone);
-        $utcEnd = $utcStart->copy()->addMinutes($slotMinutes);
+        // Extract only the first 5 characters (HH:mm) to ensure 'H:i' format
+        $cleanTime = substr($time, 0, 5);
+        
+        // Parse the incoming reservation time in restaurant timezone
+        $newStart = Carbon::createFromFormat('Y-m-d H:i', "{$date} {$cleanTime}", $restaurant->timezone);
+        $newEnd = $newStart->copy()->addMinutes($slotMinutes);
 
+        // 🔒 Use lockForUpdate() to prevent race conditions
         $query = Reservation::where('restaurant_id', $restaurant->id)
-            ->where('date', $date)
+            ->whereDate('date', $date)
             ->whereNotIn('status', ['Cancelled'])
-            ->whereNull('deleted_at');
+            ->whereNull('deleted_at')
+            ->lockForUpdate();
 
         if ($tableId !== null) {
             $query->where('table_id', $tableId);
@@ -39,13 +46,24 @@ class ReservationService
         $conflictingTableIds = [];
 
         foreach ($reservations as $reservation) {
-            if (! $reservation->table_id) {
+            if (!$reservation->table_id) {
                 continue;
             }
-            $resUtcStart = TimezoneService::toUtc($reservation->date, $reservation->time, $restaurant->timezone);
-            $resUtcEnd = $resUtcStart->copy()->addMinutes($slotMinutes);
 
-            if ($utcStart < $resUtcEnd && $utcEnd > $resUtcStart) {
+            // Get the raw date string from the database
+            $resDate = $reservation->date instanceof Carbon 
+                ? $reservation->date->format('Y-m-d') 
+                : (string) $reservation->date;
+
+            // Extract only the first 5 characters (HH:mm) for existing reservations too
+            $cleanResTime = substr($reservation->time, 0, 5);
+            
+            // Parse existing reservation time
+            $existingStart = Carbon::createFromFormat('Y-m-d H:i', "{$resDate} {$cleanResTime}", $restaurant->timezone);
+            $existingEnd = $existingStart->copy()->addMinutes($slotMinutes);
+
+            // Check for overlap
+            if ($newStart < $existingEnd && $newEnd > $existingStart) {
                 $conflictingTableIds[] = $reservation->table_id;
             }
         }
@@ -60,16 +78,18 @@ class ReservationService
         string $time,
         int $slotMinutes
     ): ?Table {
+        // 🔒 Must be called within a transaction to work with lockForUpdate()
+        /** @var \Illuminate\Database\Eloquent\Collection<int, Table> $tables */
         $tables = Table::where('restaurant_id', $restaurant->id)
             ->where('capacity', '>=', $partySize)
             ->where('status', 'Available')
+            ->lockForUpdate()
             ->get();
 
-        $conflictingIds = self::findConflicts($restaurant, $date, $time, $partySize, $slotMinutes, null, null);
+        $conflictingIds = self::findConflicts($restaurant, $date, $time, $partySize, $slotMinutes);
 
         foreach ($tables as $table) {
-            /** @var Table $table */
-            if (! in_array($table->id, $conflictingIds)) {
+            if (!in_array($table->id, $conflictingIds)) {
                 return $table;
             }
         }
@@ -100,10 +120,12 @@ class ReservationService
             ]);
         }
 
-        if (! empty($data['table_id'])) {
+        $slotMinutes = $rules->slot_length_minutes ?? 90;
+
+        if (!empty($data['table_id'])) {
             /** @var Table|null $table */
             $table = Table::find($data['table_id']);
-            if (! $table || $table->restaurant_id != $restaurant->id) {
+            if (!$table || $table->restaurant_id != $restaurant->id) {
                 throw ValidationException::withMessages([
                     'table_id' => 'Invalid table selected.',
                 ]);
@@ -114,7 +136,7 @@ class ReservationService
                 $data['date'],
                 $data['time'],
                 $data['party_size'],
-                $rules->slot_length_minutes,
+                $slotMinutes,
                 null,
                 $table->id
             );
@@ -130,10 +152,10 @@ class ReservationService
                 $data['party_size'],
                 $data['date'],
                 $data['time'],
-                $rules->slot_length_minutes
+                $slotMinutes
             );
 
-            if (! $autoTable) {
+            if (!$autoTable) {
                 throw ValidationException::withMessages([
                     'table_id' => 'No available table for this time and party size.',
                 ]);
@@ -146,7 +168,7 @@ class ReservationService
     public static function generatePublicRef(Restaurant $restaurant): string
     {
         do {
-            $ref = 'RB-'.str_pad((string) random_int(1000, 9999), 4, '0', STR_PAD_LEFT);
+            $ref = 'RB-' . str_pad((string) random_int(1000, 9999), 4, '0', STR_PAD_LEFT);
         } while (Reservation::where('restaurant_id', $restaurant->id)->where('public_ref', $ref)->exists());
 
         return $ref;
@@ -154,40 +176,58 @@ class ReservationService
 
     public static function createReservation(array $data, Restaurant $restaurant): Reservation
     {
-        self::validateReservation($data, $restaurant);
+        // 🔒 Wrap the entire operation in a database transaction
+        /** @var Reservation $reservation */
+        $reservation = DB::transaction(function () use ($data, $restaurant) {
+            self::validateReservation($data, $restaurant);
 
-        if (empty($data['table_id']) && isset($data['auto_assigned_table_id'])) {
-            $data['table_id'] = $data['auto_assigned_table_id'];
-            unset($data['auto_assigned_table_id']);
-        }
+            if (empty($data['table_id']) && isset($data['auto_assigned_table_id'])) {
+                $data['table_id'] = $data['auto_assigned_table_id'];
+                unset($data['auto_assigned_table_id']);
+            }
 
-        $avgSpend = $restaurant->rules->avg_spend_per_person ?? 25;
-        $data['revenue'] = $data['party_size'] * $avgSpend;
+            $avgSpend = $restaurant->rules->avg_spend_per_person ?? 25;
+            $data['revenue'] = $data['party_size'] * $avgSpend;
 
-        $data['public_ref'] = self::generatePublicRef($restaurant);
+            $data['public_ref'] = self::generatePublicRef($restaurant);
 
-        if (empty($data['status'])) {
-            $data['status'] = 'Upcoming';
-        }
-        if (empty($data['source'])) {
-            $data['source'] = 'App';
-        }
+            if (empty($data['status'])) {
+                $data['status'] = 'Upcoming';
+            }
+            if (empty($data['source'])) {
+                $data['source'] = 'App';
+            }
 
-        return $restaurant->reservations()->create($data);
+            return $restaurant->reservations()->create($data);
+        });
+
+        return $reservation;
     }
 
     public static function updateReservation(Reservation $reservation, array $data, Restaurant $restaurant): Reservation
     {
-        $merged = array_merge($reservation->toArray(), $data);
-        self::validateReservation($merged, $restaurant);
+        // 🔒 Wrap update in a transaction too
+        /** @var Reservation $updatedReservation */
+        $updatedReservation = DB::transaction(function () use ($reservation, $data, $restaurant) {
+            // Lock the reservation being updated
+            /** @var Reservation $lockedReservation */
+            $lockedReservation = Reservation::where('id', $reservation->id)
+                ->lockForUpdate()
+                ->firstOrFail();
 
-        if (isset($data['party_size']) && $data['party_size'] != $reservation->party_size) {
-            $avgSpend = $restaurant->rules->avg_spend_per_person ?? 25;
-            $data['revenue'] = $data['party_size'] * $avgSpend;
-        }
+            $merged = array_merge($lockedReservation->toArray(), $data);
+            self::validateReservation($merged, $restaurant);
 
-        $reservation->update($data);
+            if (isset($data['party_size']) && $data['party_size'] != $lockedReservation->party_size) {
+                $avgSpend = $restaurant->rules->avg_spend_per_person ?? 25;
+                $data['revenue'] = $data['party_size'] * $avgSpend;
+            }
 
-        return $reservation;
+            $lockedReservation->update($data);
+
+            return $lockedReservation->fresh();
+        });
+
+        return $updatedReservation;
     }
 }

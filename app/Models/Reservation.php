@@ -30,6 +30,7 @@ use Illuminate\Support\Carbon;
  * @property string|null $notes
  * @property string $source
  * @property int|null $created_by_user_id
+ * @property float|null $revenue
  * @property Carbon|null $deleted_at
  * @property Carbon $created_at
  * @property Carbon $updated_at
@@ -65,7 +66,7 @@ class Reservation extends Model
     ];
 
     protected $casts = [
-        'date' => 'date',
+        'date' => 'string',
         'time' => 'string',
         'status' => 'string',
         'revenue' => 'decimal:2',
