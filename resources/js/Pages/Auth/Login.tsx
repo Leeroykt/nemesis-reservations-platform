@@ -9,6 +9,7 @@ export default function Login() {
   const [processing, setProcessing] = useState(false);
   const [generalError, setGeneralError] = useState<string | null>(null);
   const [errors, setErrors] = useState<{ email?: string; password?: string }>({});
+  const [showPassword, setShowPassword] = useState(false);
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -17,7 +18,6 @@ export default function Login() {
     setErrors({});
     try {
       await api.login(email, password);
-      // ✅ After login, Sanctum sets a cookie; just navigate
       router.visit('/dashboard/overview');
     } catch (err: any) {
       if (err.errors) {
@@ -28,6 +28,10 @@ export default function Login() {
     } finally {
       setProcessing(false);
     }
+  };
+
+  const togglePasswordVisibility = () => {
+    setShowPassword(!showPassword);
   };
 
   return (
@@ -85,14 +89,19 @@ export default function Login() {
                 <div className="input-group-flat">
                   <i className="bi bi-lock"></i>
                   <input
-                    type="password"
+                    type={showPassword ? 'text' : 'password'}
                     className="form-control"
                     id="password"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     required
                   />
-                  <i className="bi bi-eye toggle-eye" id="toggleEye"></i>
+                  <i 
+                    className={`bi ${showPassword ? 'bi-eye-slash' : 'bi-eye'} toggle-eye`} 
+                    id="toggleEye"
+                    onClick={togglePasswordVisibility}
+                    style={{ cursor: 'pointer' }}
+                  ></i>
                 </div>
                 {errors.password && <div className="text-danger small mt-1">{errors.password}</div>}
               </div>
@@ -108,7 +117,9 @@ export default function Login() {
                   />
                   <label className="form-check-label small text-muted-soft" htmlFor="remember">Keep me signed in</label>
                 </div>
-                <span className="small text-faint">Forgot password?</span>
+                <Link href="/forgot-password" className="small text-faint text-decoration-none">
+                  Forgot password?
+                </Link>
               </div>
 
               <button type="submit" className="btn btn-gold w-100 btn-lg d-flex align-items-center justify-content-center gap-2" disabled={processing}>

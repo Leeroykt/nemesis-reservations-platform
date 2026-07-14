@@ -1,7 +1,12 @@
-import axios, { AxiosError, AxiosInstance, AxiosResponse } from 'axios';
+import axios, { AxiosError, AxiosInstance } from 'axios';
+
+// ============================================================
+// TYPES
+// ============================================================
 
 export interface ApiResponse<T = any> {
   data: T;
+  message?: string;
   meta?: {
     total: number;
     page: number;
@@ -14,6 +19,25 @@ export interface ApiError {
   message: string;
   errors?: Record<string, string[]>;
 }
+
+export interface User {
+  id: number;
+  name: string;
+  email: string;
+  role: 'host' | 'manager' | 'owner';
+  avatar_initials?: string;
+  restaurant_id: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface LoginResponse {
+  user: User;
+}
+
+// ============================================================
+// API CLIENT
+// ============================================================
 
 export class ApiClient {
   private apiClient: AxiosInstance;
@@ -60,41 +84,52 @@ export class ApiClient {
     this.authClient.interceptors.response.use((res) => res, errorInterceptor);
   }
 
+  // ============================================================
+  // AUTH METHODS
+  // ============================================================
+
   public async fetchCsrf(): Promise<void> {
-    // ✅ FIXED: Use this.authClient instead of axios directly
     await this.authClient.get('/sanctum/csrf-cookie', { withCredentials: true });
   }
 
-  public async login(email: string, password: string): Promise<{ user: any }> {
+  public async login(email: string, password: string): Promise<LoginResponse> {
     await this.fetchCsrf();
     const response = await this.authClient.post('/login', { email, password });
     return response.data.data;
   }
 
-  public logout(): Promise<void> {
-    return this.authClient.post('/logout').then(() => {});
+  public async logout(): Promise<void> {
+    await this.authClient.post('/logout');
   }
 
-  public me(): Promise<any> {
-    return this.authClient.get('/me').then((res) => res.data.data);
+  public async me(): Promise<User> {
+    const response = await this.authClient.get('/me');
+    return response.data.data;
   }
 
-  public get<T = any>(url: string, params?: Record<string, any>): Promise<ApiResponse<T>> {
-    return this.apiClient.get<ApiResponse<T>>(url, { params }).then((res) => res.data);
+  // ============================================================
+  // API METHODS
+  // ============================================================
+
+  public async get<T = any>(url: string, params?: Record<string, any>): Promise<ApiResponse<T>> {
+    const response = await this.apiClient.get<ApiResponse<T>>(url, { params });
+    return response.data;
   }
 
-  public post<T = any>(url: string, data?: any): Promise<ApiResponse<T>> {
-    return this.apiClient.post<ApiResponse<T>>(url, data).then((res) => res.data);
+  public async post<T = any>(url: string, data?: any): Promise<ApiResponse<T>> {
+    const response = await this.apiClient.post<ApiResponse<T>>(url, data);
+    return response.data;
   }
 
-  public patch<T = any>(url: string, data?: any): Promise<ApiResponse<T>> {
-    return this.apiClient.patch<ApiResponse<T>>(url, data).then((res) => res.data);
+  public async patch<T = any>(url: string, data?: any): Promise<ApiResponse<T>> {
+    const response = await this.apiClient.patch<ApiResponse<T>>(url, data);
+    return response.data;
   }
 
-  public delete<T = any>(url: string): Promise<ApiResponse<T>> {
-    return this.apiClient.delete<ApiResponse<T>>(url).then((res) => res.data);
+  public async delete<T = any>(url: string): Promise<ApiResponse<T>> {
+    const response = await this.apiClient.delete<ApiResponse<T>>(url);
+    return response.data;
   }
 }
 
-// ✅ Export both class and singleton instance
 export const api = new ApiClient();

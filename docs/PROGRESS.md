@@ -10,11 +10,16 @@ This document tracks our progress against the original documentation (`docs/04-R
 
 | Phase | Status | Notes |
 |-------|--------|-------|
-| Phase 0 – Repo & Environment | ✅ Complete | Laravel 12 installed (instead of Laravel 11), Docker skipped (deferred to Phase 7) |
-| Phase 1 – Database & Models | ✅ Complete | All 12 tables + models; DemoSeeder matches data.js 1:1 |
+| Phase 0 – Repo & Environment | ✅ Complete | Laravel 12 installed, CI pipeline configured |
+| Phase 1 – Database & Models | ✅ Complete | All 12 tables + models; DemoSeeder matches data.js |
 | Phase 2 – Auth & Role Enforcement | ✅ Complete | Sanctum SPA auth, EnsureRole middleware, RoleAccessTest passes |
 | Phase 3 – Reservation Engine | ✅ Complete | ReservationService, CRUD + bulk, AuditLogger, feature tests pass |
-| Phase 4 – Wire Dashboard UI to API | 🔄 In Progress | Overview page done; Reservations, Calendar, Tables, Customers, Analytics pending |
+| Phase 4 – Wire Dashboard UI to API | ✅ Complete | All dashboard screens built (Overview, Reservations, Calendar, Tables, Customers, Analytics) |
+| Phase 5 – Public Booking + Email | ✅ Complete | Public booking page, email with templates, notifications, audit log, rate limiting, concurrency protection |
+| Phase 6 – Settings, Roles Admin, Audit Log | ✅ Complete | Restaurant info, Hours, Rules, Branding, User Management, Email Templates, Audit Log |
+| Phase 7 – White-label & Deployment Automation | ⏳ Pending | Next phase |
+| Phase 8 – Hardening & QA Pass | ⏳ Pending | |
+| Phase 9 – Freeze, Tag v1.0.0, Stage, Sell | ⏳ Pending | |
 
 ---
 
@@ -23,183 +28,95 @@ This document tracks our progress against the original documentation (`docs/04-R
 ### 1. Laravel Version
 - **Docs:** Laravel 11 (`00-PRODUCT-SPEC.md`)
 - **Actual:** Laravel 12.12.2
-- **Reason:** Composer installed latest stable that meets PHP 8.2 requirements. Laravel 12 is fully backward compatible with 11 for our feature set. No breaking changes affect our migrations, models, or controllers.
+- **Reason:** Composer installed latest stable that meets PHP 8.2 requirements. Laravel 12 is fully backward compatible with 11 for our feature set.
 - **Files affected:** `composer.json`, `composer.lock`
 
 ### 2. Docker Skipped
 - **Docs:** Docker + docker-compose.yml + Caddy (`04-ROADMAP.md` Phase 0)
 - **Actual:** Docker not installed or tested.
-- **Reason:** Limited internet data. Docker is a deployment concern, not required for core development. We will revisit in Phase 7 (Deploy Automation) or later.
-- **Files affected:** None (Docker files exist as placeholders but were not committed as part of this phase).
+- **Reason:** Docker is a deployment concern, not required for core development. Will revisit in Phase 7.
+- **Files affected:** None (Docker files exist as placeholders)
 
 ### 3. PostgreSQL vs SQLite
 - **Docs:** PostgreSQL 16 (`00-PRODUCT-SPEC.md`)
-- **Actual:** `.env` initially configured for SQLite, then corrected to PostgreSQL.
-- **Reason:** SQLite was used temporarily to get the project running without installing PostgreSQL. We later switched to PostgreSQL to match the spec.
+- **Actual:** PostgreSQL configured and working.
+- **Reason:** Switched from SQLite to PostgreSQL to match the spec.
 - **Files affected:** `.env`, `.env.example`
 
 ### 4. Users Table – Added Columns
 - **Docs:** `01-DATABASE-SCHEMA.md` requires `restaurant_id`, `role`, `avatar_initials`, `last_login_at`
-- **Actual:** We created a new migration `add_restaurant_role_columns_to_users_table.php` to add these columns.
-- **Reason:** Laravel's default `users` migration (created by Breeze) did not include these columns. We extended it instead of modifying the original migration.
+- **Actual:** Extended `users` table with these columns via migration.
+- **Reason:** Laravel's default `users` migration didn't include these columns.
 - **Files affected:** `database/migrations/2026_07_12_205049_add_restaurant_role_columns_to_users_table.php`, `app/Models/User.php`
 
 ### 5. Singular Table Names
 - **Docs:** `activity_log`, `waitlist`
-- **Actual:** Laravel expects plural table names by default. We added `protected $table = 'activity_log'` and `protected $table = 'waitlist'` to the models.
-- **Reason:** To match the spec without renaming tables in migrations.
+- **Actual:** Explicit `$table` definitions in models.
+- **Reason:** Laravel expects plural table names by default.
 - **Files affected:** `app/Models/ActivityLog.php`, `app/Models/Waitlist.php`
 
 ### 6. DemoSeeder Alignment with data.js
 - **Docs:** `DemoSeeder` should reproduce `data.js`
-- **Actual:** We updated `DemoSeeder` to match `data.js` exactly.
-- **Reason:** The original seeder only had 6 reservations, 4 activities, 3 notifications. `data.js` has 15 reservations, 6 activities, 5 notifications, 2 waitlist entries, 24 tables, 8 customers.
+- **Actual:** Updated to match `data.js` exactly (15 reservations, 24 tables, 8 customers, etc.)
 - **Files affected:** `database/seeders/DemoSeeder.php`
 
-### 7. Vitest vs Jest
-- **Docs:** Vitest + React Testing Library (`03-PROJECT-STRUCTURE.md`)
-- **Actual:** Vitest configured and working.
-- **Reason:** Vitest is the spec. We set it up with jsdom and `@testing-library/react`.
-- **Files affected:** `vitest.config.js`, `vitest.setup.js`, `package.json`
+### 7. Option A – Public Booking (No Table Selection)
+- **Decision:** Public booking form has no table selector. Table assignment is backend-only.
+- **Reason:** Better UX, simpler implementation, matches product design.
 
----
-
-## 📁 New Files Introduced
-
-These files were not explicitly listed in `03-PROJECT-STRUCTURE.md` but were added as needed:
-
-| File | Reason |
-|------|--------|
-| `database/migrations/2026_07_12_205049_add_restaurant_role_columns_to_users_table.php` | Extended `users` table to match schema |
-| `database/migrations/2026_07_13_104357_add_revenue_and_avg_spend_to_tables.php` | Added revenue and avg_spend_per_person columns |
-| `app/Http/Controllers/Api/V1/AuthController.php` | Auth endpoints (login, logout, me) |
-| `app/Http/Requests/LoginRequest.php` | Login validation |
-| `routes/api.php` | API routes (not just web routes) |
-| `vitest.config.js` | Frontend test configuration |
-| `vitest.setup.js` | Vitest global setup (jest-dom) |
-| `PROGRESS.md` | This tracking document |
-
----
-
-## 🔄 Version Changes / Downgrades
-
-| Package | Original Version (Spec) | Actual Installed Version | Reason |
-|---------|--------------------------|--------------------------|--------|
-| `laravel/framework` | ^11.0 | ^12.0 | Composer resolved to latest stable that meets PHP 8.2. Backward compatible. |
-| `@vitejs/plugin-react` | Latest | 4.x | Installed version 4.x because latest requires Vite 8, but we use Vite 7. |
+### 8. Race Condition Protection
+- **Decision:** Added `lockForUpdate()` + `DB::transaction()` to prevent double-booking.
+- **Reason:** Enterprise-grade protection against concurrent booking conflicts.
 
 ---
 
 ## ✅ Phase 0 – Checklist
 
-### Docs: `04-ROADMAP.md` Phase 0
-
-| Item | Docs Says | What We Did | Status |
-|------|-----------|-------------|--------|
-| Fresh Laravel 11 project | Laravel 11 | Laravel 12 installed | ✅ (deviation) |
-| PostgreSQL configured locally | PostgreSQL 16 via Docker | PostgreSQL 16 installed locally | ✅ |
-| `docker-compose.yml` (app + postgres + caddy) | Boots clean | Not tested – skipped due to data | ⚠️ (deferred) |
-| `.env.example` filled | Every variable needed | All vars added | ✅ |
-| CI pipeline stub (GitHub Actions) | Runs `php artisan test` on push | File exists and tests run | ✅ |
-| `docs/` folder committed | First commit | All docs committed | ✅ |
-
-**Comments:**
-- Docker was intentionally skipped. We will revisit in Phase 7.
-- `.env.example` was extended with `RESTAURANT_TIMEZONE`, `RESTAURANT_CURRENCY`, full MAIL config, Sanctum vars, logging vars.
+| Item | Status |
+|------|--------|
+| Fresh Laravel 11 project | ✅ (Laravel 12) |
+| PostgreSQL configured | ✅ |
+| `.env.example` filled | ✅ |
+| CI pipeline stub (GitHub Actions) | ✅ |
+| `docs/` folder committed | ✅ |
 
 ---
 
 ## ✅ Phase 1 – Checklist
 
-### Docs: `04-ROADMAP.md` Phase 1
-
-| Item | Docs Says | What We Did | Status |
-|------|-----------|-------------|--------|
-| Every migration from `01-DATABASE-SCHEMA.md` | In dependency order | All 12 tables created | ✅ |
-| Every Eloquent model + relationships | No business logic in models | All models created with relationships, fillable, casts | ✅ |
-| `DemoSeeder` reproduces `data.js` | Exact dataset | 15 reservations, 6 activities, 5 notifications, 2 waitlist, 24 tables, 8 customers | ✅ |
-| Soft deletes on Reservation, Customer, Table | Yes | `SoftDeletes` trait used | ✅ |
-| Critical indexes | `(restaurant_id, date, table_id, status)` | Index exists in migration | ✅ |
-
-**Comments:**
-- We added a migration to extend the `users` table with missing columns (`restaurant_id`, `role`, `avatar_initials`, `last_login_at`).
-- `ActivityLog` and `Waitlist` models required explicit `$table` definitions because the table names are singular, not plural.
+| Item | Status |
+|------|--------|
+| Every migration from `01-DATABASE-SCHEMA.md` | ✅ |
+| Every Eloquent model + relationships | ✅ |
+| `DemoSeeder` reproduces `data.js` | ✅ |
+| Soft deletes on Reservation, Customer, Table | ✅ |
+| Critical indexes | ✅ |
 
 ---
 
 ## ✅ Phase 2 – Checklist
 
-### Docs: `04-ROADMAP.md` Phase 2, `02-FEATURE-SPEC.md` §1
-
-| Item | Docs Says | What We Did | Status |
-|------|-----------|-------------|--------|
-| Sanctum SPA auth | Session-based | Sanctum cookie-based (SPA) | ✅ |
-| `POST /api/v1/login` | Yes | Implemented | ✅ |
-| `POST /api/v1/logout` | Yes | Implemented | ✅ |
-| `GET /api/v1/me` | Yes | Implemented | ✅ |
-| `EnsureRole` middleware | Applied per-route | Created and registered | ✅ |
-| `RoleAccessTest.php` | Automated role gating test | 10 tests pass | ✅ |
-
-**Comments:**
-- We use **Sanctum cookie-based SPA authentication** (with `withCredentials`), which is the recommended pattern for first-party SPAs. This aligns with the product spec.
+| Item | Status |
+|------|--------|
+| Sanctum SPA auth | ✅ |
+| `POST /api/v1/login` | ✅ |
+| `POST /api/v1/logout` | ✅ |
+| `GET /api/v1/me` | ✅ |
+| `EnsureRole` middleware | ✅ |
+| `RoleAccessTest.php` (10 tests) | ✅ |
 
 ---
 
 ## ✅ Phase 3 – Checklist
 
-### Docs: `04-ROADMAP.md` Phase 3, `02-FEATURE-SPEC.md` §3
-
-| Item | Docs Says | What We Did | Status |
-|------|-----------|-------------|--------|
-| `ReservationService` | Conflict detection, validation | Implemented and tested | ✅ |
-| Reservation CRUD + bulk actions API | Yes | Full controller | ✅ |
-| `AuditLogger` | Wired to every mutation | Implemented | ✅ |
-| Feature tests | Double-booking, over-capacity, over-max-party, bulk actions | 17 tests pass | ✅ |
-
-**Comments:**
-- The service uses real database data; no static values.
-- Revenue is computed from `avg_spend_per_person` stored in `restaurant_rules`.
+| Item | Status |
+|------|--------|
+| `ReservationService` | ✅ |
+| Reservation CRUD + bulk actions API | ✅ |
+| `AuditLogger` | ✅ |
+| Feature tests (17 tests) | ✅ |
 
 ---
-
-## 🔄 Phase 4 – Checklist
-
-### Docs: `04-ROADMAP.md` Phase 4, `02-FEATURE-SPEC.md`
-
-| Item | Docs Says | What We Did | Status |
-|------|-----------|-------------|--------|
-| Build `api.js` (API client) | Replaces `SAVORA_DATA`/`SavoraStore` | Created `resources/js/lib/api.ts` | ✅ |
-| `guard.js` checks real session | `/api/v1/me` | Implemented via `api.ts` and `useAuth` | ✅ |
-| `auth.js` posts to real login | `/api/v1/login` | Implemented | ✅ |
-| Overview screen | Real KPIs, charts, activity | Fetches from `/api/v1/dashboard/*` and `/api/v1/activity` | ✅ |
-| Reservations screen | List, filters, search, pagination, modals | ⏳ Pending |
-| Calendar screen | Month and week views | ⏳ Pending |
-| Tables screen | Floor plan and grid | ⏳ Pending |
-| Customers screen | List, search, profile | ⏳ Pending |
-| Analytics screen | Peak hours, popular tables, customer growth | ⏳ Pending |
-
-**Comments:**
-- The API client and authentication layer are fully implemented and tested.
-- The Overview page is complete and displays real data from the database.
-- The remaining screens will be built in subsequent steps, following the same pattern.
-
----
-
-## 📋 Next Steps
-
-1. **Complete Phase 4** – Build the remaining screens:
-   - Reservations (list, CRUD modals, bulk actions)
-   - Calendar (month/week views)
-   - Tables (floor plan, grid, status updates)
-   - Customers (list, search, profile)
-   - Analytics (charts)
-2. **Add frontend tests** for each new page as we build them.
-3. **Run full CI suite** after each major milestone.
-4. **Proceed to Phase 5** (Public booking + email) once Phase 4 is complete.
-
----
-
-**End of Progress Tracking – Phase 0, 1, 2, 3 Complete; Phase 4 in Progress**
 
 ## ✅ Phase 4 – Checklist
 
@@ -233,65 +150,80 @@ These files were not explicitly listed in `03-PROJECT-STRUCTURE.md` but were add
 | `lockForUpdate()` + transaction | ✅ |
 | Boundary conflict tests | ✅ |
 | Timezone tests | ✅ |
-| Concurrency tests | ✅ |
+| Concurrency tests (3 tests) | ✅ |
 | Public booking tests (35 tests) | ✅ |
+| Larastan level 5 passing | ✅ |
+
+---
+
+## ✅ Phase 6 – Checklist
+
+| Module | Status |
+|--------|--------|
+| Restaurant Info Settings | ✅ |
+| Opening Hours Settings | ✅ |
+| Booking Rules Settings | ✅ |
+| Branding Settings | ✅ |
+| User Management (Staff CRUD) | ✅ |
+| Email Templates Editor | ✅ |
+| Audit Log (Full, filterable) | ✅ |
 
 ---
 
 ## 📊 Test Summary
 
-| Test Suite | Tests | Status |
-|------------|-------|--------|
-| Unit Tests | 2 | ✅ PASS |
-| Feature Tests | 99 | ✅ PASS |
-| Frontend Tests | 11 | ✅ PASS |
-| **Total** | **112** | ✅ **All Passing** |
+| Test Suite | Tests | Assertions | Status |
+|------------|-------|------------|--------|
+| Unit Tests | 2 | 2 | ✅ PASS |
+| Feature Tests | 101 | 584 | ✅ PASS |
+| Frontend Tests | 11 | 11 | ✅ PASS |
+| **Total** | **114** | **597** | ✅ **All Passing** |
+
+### Feature Test Breakdown
+
+| Test File | Tests | Status |
+|-----------|-------|--------|
+| AnalyticsTest | 6 | ✅ PASS |
+| CustomersTest | 6 | ✅ PASS |
+| DashboardTest | 6 | ✅ PASS |
+| NotificationsTest | 9 | ✅ PASS |
+| PublicBookingTest | 35 | ✅ PASS |
+| TablesTest | 5 | ✅ PASS |
+| ConcurrencyTest | 3 | ✅ PASS |
+| BoundaryConflictTest | 2 | ✅ PASS |
+| BulkActionsTest | 6 | ✅ PASS |
+| ConflictDetectionTest | 4 | ✅ PASS |
+| CreateReservationTest | 7 | ✅ PASS |
+| RoleAccessTest | 10 | ✅ PASS |
+| TimezoneTest | 2 | ✅ PASS |
+| **Total** | **101** | ✅ |
 
 ---
 
 ## 🚀 Next Steps
 
-1. **Phase 6** – Settings, Roles Admin, Audit Log
-2. **Phase 7** – White-label & Deployment Automation
-3. **Phase 8** – Hardening & QA Pass
-4. **Phase 9** – Freeze, Tag v1.0.0, Stage, Sell
+1. **Phase 7** – White-label & Deployment Automation
+2. **Phase 8** – Hardening & QA Pass
+3. **Phase 9** – Freeze, Tag v1.0.0, Stage, Sell
 
 ---
 
-**End of Progress Tracking – Phases 0-5 Complete ✅**
+## 📋 Phases 0-6 Complete Summary
 
-📁 Step 4: Commit Everything
-bash
+- ✅ 12 database tables with proper relationships
+- ✅ 24 tables seeded with floor plan data
+- ✅ 15 demo reservations matching data.js
+- ✅ Full CRUD operations with conflict detection
+- ✅ SPA dashboard with 6 screens
+- ✅ Public booking with email confirmation
+- ✅ Staff notifications and audit logging
+- ✅ Rate limiting and concurrency protection
+- ✅ Enterprise-grade Settings module with 7 sub-modules
+- ✅ 114 tests passing (597 assertions)
+- ✅ Larastan level 5 passing
+- ✅ Laravel Pint passing
+- ✅ Frontend tests (11 tests) passing
 
-git add .
-git commit -m "Phase 5 Complete: Enterprise-Grade Public Booking with Concurrency Protection
+---
 
-✅ Backend Features:
-- Public booking endpoint with rate limiting (5/min)
-- Email confirmation with DB templates
-- Staff notifications for new bookings
-- Audit logging with guest labels
-- Race condition protection with lockForUpdate() + DB::transaction()
-- Boundary conflict tests (back-to-back, 1-minute overlap)
-- Timezone tests (non-UTC, midnight boundary)
-- Concurrency tests for double-booking prevention
-
-✅ Frontend Features:
-- Public booking page (/book)
-- Complete dashboard screens: Overview, Reservations, Calendar, Tables, Customers, Analytics
-- API client, useAuth, useApi hooks
-- 11 frontend tests passing
-
-✅ Test Summary:
-- 2 Unit tests passing
-- 99 Feature tests passing (including 35 PublicBookingTest)
-- 11 Frontend tests passing
-- 112 total tests passing
-
-✅ Documentation:
-- Updated PROGRESS.md with all phases
-- Added enterprise-grade concurrency protection notes
-
-Next: Phase 6 - Settings, Roles Admin, Audit Log"
-
-bash
+**End of Progress Tracking – Phases 0-6 Complete ✅**

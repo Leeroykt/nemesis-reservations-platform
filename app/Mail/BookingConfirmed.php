@@ -16,7 +16,6 @@ class BookingConfirmed extends Mailable
     use Queueable, SerializesModels;
 
     protected Reservation $reservation;
-
     protected Restaurant $restaurant;
 
     public function __construct(Reservation $reservation)
@@ -37,7 +36,7 @@ class BookingConfirmed extends Mailable
 
         $subject = $template
             ? $this->replaceTokens($template->subject)
-            : "Your booking at {$this->restaurant->name} is confirmed";
+            : "Booking Confirmed – {$this->restaurant->name}";
 
         return new Envelope(
             subject: $subject,
@@ -54,11 +53,21 @@ class BookingConfirmed extends Mailable
 
         $body = $template
             ? $this->replaceTokens($template->body)
-            : "Dear {$this->reservation->guest_name},\n\nYour booking for {$this->reservation->party_size} guests on {$this->reservation->date} at {$this->reservation->time} has been confirmed.\n\nBooking Reference: {$this->reservation->public_ref}\n\nWe look forward to welcoming you!\n\n{$this->restaurant->name} Team";
+            : "Your booking has been confirmed.";
 
         return new Content(
             view: 'emails.booking-confirmed',
-            with: ['body' => $body],
+            with: [
+                'guest_name' => $this->reservation->guest_name,
+                'guest_email' => $this->reservation->guest_email,
+                'booking_id' => $this->reservation->public_ref,
+                'date' => $this->reservation->date,
+                'time' => $this->reservation->time,
+                'party_size' => $this->reservation->party_size,
+                'restaurant_name' => $this->restaurant->name,
+                'restaurant_url' => url('/'),
+                'body' => $body,
+            ],
         );
     }
 
@@ -72,7 +81,6 @@ class BookingConfirmed extends Mailable
             '{{booking_id}}' => $this->reservation->public_ref,
             '{{restaurant_name}}' => $this->restaurant->name,
         ];
-
         return str_replace(array_keys($tokens), array_values($tokens), $text);
     }
 }

@@ -1,7 +1,10 @@
 import React, { useState } from 'react';
 import { Link, usePage } from '@inertiajs/react';
+import { PageProps } from '@/types';
 
-const navItems = [
+type NavRole = 'host' | 'manager' | 'owner';
+
+const navItems: { route: string; label: string; icon: string; role: NavRole }[] = [
   { route: 'overview', label: 'Overview', icon: 'bi-grid-1x2', role: 'host' },
   { route: 'reservations', label: 'Reservations', icon: 'bi-calendar-check', role: 'host' },
   { route: 'calendar', label: 'Calendar', icon: 'bi-calendar3', role: 'host' },
@@ -9,29 +12,43 @@ const navItems = [
   { route: 'customers', label: 'Customers', icon: 'bi-people', role: 'manager' },
   { route: 'analytics', label: 'Analytics', icon: 'bi-graph-up', role: 'manager' },
   { route: 'settings', label: 'Settings', icon: 'bi-gear', role: 'owner' },
-  { route: 'audit', label: 'Audit log', icon: 'bi-journal-text', role: 'owner' },
+  { route: 'audit', label: 'Audit Log', icon: 'bi-journal-text', role: 'owner' },
 ];
 
-const roleLevels: Record<string, number> = {
+const roleLevels: Record<NavRole, number> = {
   host: 1,
   manager: 2,
   owner: 3,
 };
 
 interface SidebarProps {
-  user: any;
+  user?: {
+    id: number;
+    name: string;
+    email: string;
+    role: NavRole;
+  } | null;
 }
 
 export default function Sidebar({ user }: SidebarProps) {
-  const { url } = usePage();
+  const { url } = usePage<PageProps>();
   const [collapsed, setCollapsed] = useState(false);
 
-  const userRole = (user?.role as keyof typeof roleLevels) || 'host';
-  const userInitials = user?.name?.split(' ').map((w: string) => w[0]).slice(0, 2).join('').toUpperCase() || '??';
+  // Safe defaults if user is null/undefined
+  const userRole = user?.role || 'host';
+  const userName = user?.name || 'User';
+  const userDisplayName = user?.name || 'Guest';
+  
+  const userInitials = user?.name
+    ?.split(' ')
+    .map((w: string) => w[0])
+    .slice(0, 2)
+    .join('')
+    .toUpperCase() || 'U';
 
-  const hasAccess = (minRole: string) => {
+  const hasAccess = (minRole: NavRole): boolean => {
     const userLevel = roleLevels[userRole] || 0;
-    const minLevel = roleLevels[minRole as keyof typeof roleLevels] || 0;
+    const minLevel = roleLevels[minRole] || 0;
     return userLevel >= minLevel;
   };
 
@@ -70,7 +87,7 @@ export default function Sidebar({ user }: SidebarProps) {
         <div className="user-chip" data-bs-toggle="dropdown">
           <span className="avatar-circle">{userInitials}</span>
           <div className="user-meta flex-grow-1 overflow-hidden">
-            <div className="small fw-semibold text-truncate">{user?.name || 'User'}</div>
+            <div className="small fw-semibold text-truncate">{userDisplayName}</div>
             <div className="text-faint text-truncate" style={{ fontSize: '.72rem' }}>
               {user?.role ? user.role.charAt(0).toUpperCase() + user.role.slice(1) : 'Guest'}
             </div>

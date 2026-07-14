@@ -53,10 +53,99 @@ interface CustomerGrowthData {
   returning: number[];
 }
 
+// ---------- Chart Options ----------
+const barOptions = {
+  responsive: true,
+  maintainAspectRatio: false,
+  plugins: {
+    legend: {
+      labels: {
+        color: 'var(--text-muted)',
+        font: {
+          family: 'Raleway',
+          size: 11,
+          weight: 700 as const,
+        },
+        usePointStyle: true,
+        pointStyle: 'circle',
+      },
+    },
+  },
+  scales: {
+    x: {
+      grid: { display: false },
+      ticks: {
+        color: 'var(--text-muted)',
+        font: {
+          family: 'Raleway',
+          size: 11,
+          weight: 700 as const,
+        },
+      },
+    },
+    y: {
+      grid: { color: 'var(--border)' },
+      ticks: {
+        color: 'var(--text-muted)',
+        font: {
+          family: 'Raleway',
+          size: 11,
+          weight: 700 as const,
+        },
+        stepSize: 1,
+      },
+      beginAtZero: true,
+    },
+  },
+};
+
+const lineOptions = {
+  responsive: true,
+  maintainAspectRatio: false,
+  plugins: {
+    legend: {
+      labels: {
+        color: 'var(--text-muted)',
+        font: {
+          family: 'Raleway',
+          size: 11,
+          weight: 700 as const,
+        },
+        usePointStyle: true,
+        pointStyle: 'circle',
+      },
+    },
+  },
+  scales: {
+    x: {
+      grid: { display: false },
+      ticks: {
+        color: 'var(--text-muted)',
+        font: {
+          family: 'Raleway',
+          size: 11,
+          weight: 700 as const,
+        },
+      },
+    },
+    y: {
+      grid: { color: 'var(--border)' },
+      ticks: {
+        color: 'var(--text-muted)',
+        font: {
+          family: 'Raleway',
+          size: 11,
+          weight: 700 as const,
+        },
+        stepSize: 1,
+      },
+      beginAtZero: true,
+    },
+  },
+};
+
 // ---------- Main Component ----------
 export default function Analytics() {
-  const { restaurant } = usePage<PageProps>().props;
-  const timezone = restaurant?.timezone || 'Africa/Harare';
   const [toast, setToast] = React.useState<{ message: string; type: 'success' | 'error' | 'info' } | null>(null);
 
   // Fetch data for each chart
@@ -85,7 +174,7 @@ export default function Analytics() {
   const hasError = peakError || popularError || growthError;
 
   // Toast helper
-  const showToast = (message: string, type: 'success' | 'error' | 'info' = 'error') => {
+  const showToast = (message: string, type: 'success' | 'error' | 'info' = 'info') => {
     setToast({ message, type });
     setTimeout(() => setToast(null), 3000);
   };
@@ -95,97 +184,7 @@ export default function Analytics() {
     refetchPeak();
     refetchPopular();
     refetchGrowth();
-  };
-
-  // Chart options – fixed font weights (numeric)
-  const barOptions = {
-    responsive: true,
-    maintainAspectRatio: false,
-    plugins: {
-      legend: {
-        labels: {
-          color: 'var(--text-muted)',
-          font: {
-            family: 'Raleway',
-            size: 11,
-            weight: 700,
-          },
-          usePointStyle: true,
-          pointStyle: 'circle',
-        },
-      },
-    },
-    scales: {
-      x: {
-        grid: { display: false },
-        ticks: {
-          color: 'var(--text-muted)',
-          font: {
-            family: 'Raleway',
-            size: 11,
-            weight: 700,
-          },
-        },
-      },
-      y: {
-        grid: { color: 'var(--border)' },
-        ticks: {
-          color: 'var(--text-muted)',
-          font: {
-            family: 'Raleway',
-            size: 11,
-            weight: 700,
-          },
-          stepSize: 1,
-        },
-        beginAtZero: true,
-      },
-    },
-  };
-
-  const lineOptions = {
-    responsive: true,
-    maintainAspectRatio: false,
-    plugins: {
-      legend: {
-        labels: {
-          color: 'var(--text-muted)',
-          font: {
-            family: 'Raleway',
-            size: 11,
-            weight: 700,
-          },
-          usePointStyle: true,
-          pointStyle: 'circle',
-        },
-      },
-    },
-    scales: {
-      x: {
-        grid: { display: false },
-        ticks: {
-          color: 'var(--text-muted)',
-          font: {
-            family: 'Raleway',
-            size: 11,
-            weight: 700,
-          },
-        },
-      },
-      y: {
-        grid: { color: 'var(--border)' },
-        ticks: {
-          color: 'var(--text-muted)',
-          font: {
-            family: 'Raleway',
-            size: 11,
-            weight: 700,
-          },
-          stepSize: 1,
-        },
-        beginAtZero: true,
-      },
-    },
+    showToast('Refreshing analytics data...', 'info');
   };
 
   // Prepare chart data

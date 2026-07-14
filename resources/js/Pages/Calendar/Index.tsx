@@ -8,7 +8,9 @@ import { usePage } from '@inertiajs/react';
 import { PageProps } from '@/types';
 import DashboardLayout from '@/Components/Layout/DashboardLayout';
 import { useApi } from '@/hooks/useApi';
-import { formatDate, formatTime } from '@/lib/timezone';
+import { formatDate } from '@/lib/timezone';
+import MonthView from './MonthView';
+import WeekView from './WeekView';
 
 // ---------- Types ----------
 interface Reservation {
@@ -170,146 +172,5 @@ export default function Calendar() {
         />
       )}
     </DashboardLayout>
-  );
-}
-
-// ---------- MonthView Subcomponent ----------
-interface MonthViewProps {
-  year: number;
-  month: number;
-  grouped: Record<string, Reservation[]>;
-  timezone: string;
-}
-
-function MonthView({ year, month, grouped, timezone }: MonthViewProps) {
-  const firstDay = new Date(year, month, 1).getDay(); // 0=Sun
-  const daysInMonth = new Date(year, month + 1, 0).getDate();
-  const today = new Date().toISOString().split('T')[0];
-
-  const days: ({ date: string; day: number; isToday: boolean } | null)[] = [];
-  for (let i = 0; i < firstDay; i++) {
-    days.push(null);
-  }
-  for (let d = 1; d <= daysInMonth; d++) {
-    const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
-    days.push({ date: dateStr, day: d, isToday: dateStr === today });
-  }
-
-  return (
-    <div className="card-elev p-3">
-      <div className="cal-grid">
-        {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day) => (
-          <div key={day} className="text-center text-faint small fw-bold py-2">
-            {day}
-          </div>
-        ))}
-        {days.map((cell, index) => {
-          if (!cell) {
-            return <div key={`empty-${index}`} className="cal-cell muted" style={{ minHeight: '80px' }} />;
-          }
-          const dayReservations = grouped[cell.date] || [];
-          const display = dayReservations.slice(0, 3);
-          const extra = dayReservations.length - 3;
-
-          return (
-            <div key={cell.date} className={`cal-cell ${cell.isToday ? 'today' : ''}`}>
-              <div className="cal-day-num">{cell.day}</div>
-              {display.map((res) => (
-                <div
-                  key={res.id}
-                  className="cal-chip"
-                  style={{
-                    background: 'var(--surface-2)',
-                    padding: '2px 6px',
-                    borderRadius: '4px',
-                    fontSize: '.7rem',
-                    marginTop: '4px',
-                    borderLeft: `3px solid var(--${res.status === 'Confirmed' ? 'emerald' : res.status === 'Cancelled' ? 'rust' : 'gold'})`,
-                  }}
-                >
-                  {formatTime(res.time, timezone)} – {res.guest_name} ({res.party_size})
-                </div>
-              ))}
-              {extra > 0 && (
-                <div className="cal-chip text-muted-soft" style={{ fontSize: '.7rem', marginTop: '4px' }}>
-                  +{extra} more
-                </div>
-              )}
-            </div>
-          );
-        })}
-      </div>
-    </div>
-  );
-}
-
-// ---------- WeekView Subcomponent ----------
-interface WeekViewProps {
-  startDate: string;
-  reservations: Reservation[];
-  timezone: string;
-}
-
-function WeekView({ startDate, reservations, timezone }: WeekViewProps) {
-  const start = new Date(startDate);
-  const days: Date[] = [];
-  for (let i = 0; i < 7; i++) {
-    const d = new Date(start);
-    d.setDate(start.getDate() + i);
-    days.push(d);
-  }
-
-  const hours = Array.from({ length: 15 }, (_, i) => i + 8); // 8 AM to 10 PM
-
-  // Group reservations by day index and hour
-  const grouped: Record<string, Reservation[]> = {};
-  reservations.forEach((r) => {
-    const idx = days.findIndex((d) => d.toISOString().split('T')[0] === r.date);
-    if (idx === -1) return;
-    const hourKey = r.time.split(':')[0];
-    const key = `${idx}-${hourKey}`;
-    if (!grouped[key]) grouped[key] = [];
-    grouped[key].push(r);
-  });
-
-  return (
-    <div className="card-elev p-3">
-      <div className="week-row">
-        <div className="week-hour"></div>
-        {days.map((d) => (
-          <div key={d.toISOString()} className="text-center text-faint small fw-bold py-2">
-            {d.toLocaleDateString('en-US', { weekday: 'short', day: 'numeric' })}
-          </div>
-        ))}
-        {hours.map((hour) => (
-          <React.Fragment key={hour}>
-            <div className="week-hour">
-              {hour % 12 === 0 ? 12 : hour % 12}{hour >= 12 ? 'PM' : 'AM'}
-            </div>
-            {days.map((_, idx) => {
-              const key = `${idx}-${String(hour).padStart(2, '0')}`;
-              const res = grouped[key] || [];
-              return (
-                <div key={`${idx}-${hour}`} className="week-slot">
-                  {res.map((r) => (
-                    <div
-                      key={r.id}
-                      className="p-1 mb-1 rounded"
-                      style={{
-                        background: 'var(--surface-2)',
-                        fontSize: '.7rem',
-                        borderLeft: `3px solid var(--${r.status === 'Confirmed' ? 'emerald' : r.status === 'Cancelled' ? 'rust' : 'gold'})`,
-                      }}
-                    >
-                      {r.guest_name} ({r.party_size})
-                    </div>
-                  ))}
-                </div>
-              );
-            })}
-          </React.Fragment>
-        ))}
-      </div>
-    </div>
   );
 }

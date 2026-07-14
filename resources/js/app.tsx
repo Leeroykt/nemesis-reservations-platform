@@ -2,7 +2,7 @@ import { createInertiaApp } from '@inertiajs/react'
 import { createRoot } from 'react-dom/client'
 import { resolvePageComponent } from 'laravel-vite-plugin/inertia-helpers'
 
-// @ts-ignore - Vite glob is available
+// Vite glob is available - properly typed
 const pages = import.meta.glob('./Pages/**/*.tsx')
 
 createInertiaApp({

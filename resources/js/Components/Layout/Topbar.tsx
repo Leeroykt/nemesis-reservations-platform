@@ -1,8 +1,16 @@
 import React, { useState, useEffect } from 'react';
-import { usePage, Link } from '@inertiajs/react';
+import { Link, usePage } from '@inertiajs/react';
+import { PageProps } from '@/types';
+
+type NavRole = 'host' | 'manager' | 'owner';
 
 interface TopbarProps {
-  user: any;
+  user?: {
+    id: number;
+    name: string;
+    email: string;
+    role: NavRole;
+  } | null;
 }
 
 export default function Topbar({ user }: TopbarProps) {
@@ -17,7 +25,12 @@ export default function Topbar({ user }: TopbarProps) {
 
   const toggleTheme = () => setTheme(theme === 'dark' ? 'light' : 'dark');
 
-  const userInitials = user?.name?.split(' ').map((w: string) => w[0]).slice(0, 2).join('').toUpperCase() || '??';
+  const userInitials = user?.name
+    ?.split(' ')
+    .map((w: string) => w[0])
+    .slice(0, 2)
+    .join('')
+    .toUpperCase() || 'U';
 
   return (
     <header className="topbar">
@@ -44,9 +57,7 @@ export default function Topbar({ user }: TopbarProps) {
               <span className="fw-semibold">Notifications</span>
               <span className="small text-gold" style={{ cursor: 'pointer' }}>Mark all read</span>
             </div>
-            <div id="notifList" style={{ maxHeight: '360px', overflowY: 'auto' }}>
-              {/* Notifications will be fetched and rendered here */}
-            </div>
+            <div id="notifList" style={{ maxHeight: '360px', overflowY: 'auto' }} />
           </div>
         </div>
 

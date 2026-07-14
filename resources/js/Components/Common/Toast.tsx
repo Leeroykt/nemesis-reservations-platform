@@ -19,6 +19,12 @@ export default function Toast({ message, type = 'success', duration = 3000, onCl
     return () => clearTimeout(timer);
   }, [duration, onClose]);
 
+  const handleClose = () => {
+    setVisible(false);
+    // onClose is called when user manually closes
+    if (onClose) onClose();
+  };
+
   if (!visible) return null;
 
   const iconMap = {
@@ -33,7 +39,7 @@ export default function Toast({ message, type = 'success', duration = 3000, onCl
         <div className="d-flex align-items-center p-3">
           <i className={`bi ${iconMap[type]} me-2`}></i>
           <div className="me-auto small fw-semibold">{message}</div>
-          <button type="button" className="btn-close" onClick={() => setVisible(false)}></button>
+          <button type="button" className="btn-close" onClick={handleClose}></button>
         </div>
       </div>
     </div>

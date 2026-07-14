@@ -3,7 +3,7 @@
  * Ref: 02-FEATURE-SPEC.md §5, 08-UI-DESIGN-SYSTEM.md (floor-plan)
  */
 
-import React, { useState, useMemo } from 'react';
+import React, { useState } from 'react';
 import { usePage } from '@inertiajs/react';
 import { PageProps } from '@/types';
 import DashboardLayout from '@/Components/Layout/DashboardLayout';
@@ -28,9 +28,6 @@ type ViewMode = 'floor' | 'grid';
 
 // ---------- Main Component ----------
 export default function Tables() {
-  const { restaurant } = usePage<PageProps>().props;
-  const timezone = restaurant?.timezone || 'Africa/Harare';
-
   const [viewMode, setViewMode] = useState<ViewMode>('floor');
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'info' } | null>(null);
 
@@ -50,7 +47,7 @@ export default function Tables() {
     try {
       await api.patch(`/tables/${tableId}/status`, { status: newStatus });
       showToast(`Table status updated to ${newStatus}`);
-      refetch(); // refresh list
+      refetch();
     } catch (err: any) {
       showToast(err.message || 'Failed to update status', 'error');
     }

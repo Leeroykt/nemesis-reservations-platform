@@ -495,3 +495,31 @@ hr.divider{ border-top: 1px solid var(--border); opacity: 1; }
 /* Ticker row on login */
 .ticker-row{ display:flex; align-items:center; gap:10px; padding:9px 0; border-bottom:1px dashed var(--border); font-size:.84rem; }
 .ticker-row:last-child{ border-bottom:none; }
+
+/* Calendar status colors */
+.cal-chip.status-confirmed {
+  border-left: 3px solid var(--emerald);
+}
+.cal-chip.status-cancelled {
+  border-left: 3px solid var(--rust);
+}
+.cal-chip.status-completed {
+  border-left: 3px solid var(--slate);
+}
+.cal-chip.status-upcoming {
+  border-left: 3px solid var(--gold);
+}
+
+/* Week view reservation blocks */
+.reservation-block.status-confirmed {
+  border-left: 3px solid var(--emerald);
+}
+.reservation-block.status-cancelled {
+  border-left: 3px solid var(--rust);
+}
+.reservation-block.status-completed {
+  border-left: 3px solid var(--slate);
+}
+.reservation-block.status-upcoming {
+  border-left: 3px solid var(--gold);
+}

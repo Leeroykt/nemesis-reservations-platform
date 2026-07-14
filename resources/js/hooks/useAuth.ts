@@ -1,39 +1,37 @@
 /**
  * Authentication Hook
- * Provides login, logout, user state, and token management.
+ * Provides login, logout, user state.
  * Ref: 02-FEATURE-SPEC.md §1, 09a-STATE-MANAGEMENT.md
  */
 
 import { useState, useEffect } from 'react';
-import { api } from '../lib/api';
+import { api, User, LoginResponse } from '@/lib/api';
 
 export function useAuth() {
-  const [user, setUser] = useState<any>(null);
+  const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const token = localStorage.getItem('auth_token');
-    if (token) {
-      api.me()
-        .then((res) => setUser(res.data))
-        .catch(() => {
-          localStorage.removeItem('auth_token');
-          setUser(null);
-        })
-        .finally(() => setLoading(false));
-    } else {
-      setLoading(false);
-    }
+    api.me()
+      .then((userData: User) => {
+        setUser(userData);
+      })
+      .catch(() => {
+        setUser(null);
+      })
+      .finally(() => {
+        setLoading(false);
+      });
   }, []);
 
-  const login = async (email: string, password: string) => {
-    const response = await api.login(email, password);
-    const userData = response.data.user;
+  const login = async (email: string, password: string): Promise<User> => {
+    const response: LoginResponse = await api.login(email, password);
+    const userData = response.user;
     setUser(userData);
-    return response;
+    return userData;
   };
 
-  const logout = async () => {
+  const logout = async (): Promise<void> => {
     await api.logout();
     setUser(null);
   };

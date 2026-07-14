@@ -10,11 +10,24 @@ use App\Http\Controllers\Api\V1\TableController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
-Route::get('/', function () {
-    return redirect('/login');
-});
+// ============================================================
+// PUBLIC ROUTES
+// ============================================================
 
-// Auth routes – session-based (NOT prefixed with api/v1)
+// Landing page
+Route::get('/', function () {
+    return Inertia::render('Public/Landing');
+})->name('home');
+
+// Public booking page
+Route::get('/book', function () {
+    return Inertia::render('Public/Booking');
+})->name('public.booking');
+
+// ============================================================
+// AUTH ROUTES
+// ============================================================
+
 Route::post('/login', [AuthController::class, 'login'])->name('login.post');
 Route::post('/logout', [AuthController::class, 'logout'])->name('logout.post');
 
@@ -23,10 +36,12 @@ Route::get('/login', function () {
     return Inertia::render('Auth/Login');
 })->name('login');
 
-// Protected API routes (with session support)
+// ============================================================
+// PROTECTED API ROUTES (api/v1 prefix)
+// ============================================================
+
 Route::middleware(['auth:sanctum'])->prefix('api/v1')->group(function () {
 
-    // ✅ MOVED: /me endpoint now under /api/v1 prefix
     Route::get('/me', [AuthController::class, 'me'])->name('api.v1.me');
 
     // Role test route
@@ -34,7 +49,9 @@ Route::middleware(['auth:sanctum'])->prefix('api/v1')->group(function () {
         return response()->json(['message' => 'Access granted.']);
     })->middleware('role:owner');
 
-    // Host+ routes
+    // ============================================================
+    // HOST+ ROUTES
+    // ============================================================
     Route::middleware('role:host')->group(function () {
         Route::get('/dashboard/kpis', [DashboardController::class, 'kpis'])->name('api.v1.dashboard.kpis');
         Route::get('/dashboard/revenue-trend', [DashboardController::class, 'revenueTrend'])->name('api.v1.dashboard.revenue-trend');
@@ -59,7 +76,9 @@ Route::middleware(['auth:sanctum'])->prefix('api/v1')->group(function () {
             ->name('api.v1.reservations.destroy');
     });
 
-    // Manager+ routes
+    // ============================================================
+    // MANAGER+ ROUTES
+    // ============================================================
     Route::middleware('role:manager')->group(function () {
         Route::get('/customers', [CustomerController::class, 'index'])->name('api.v1.customers.index');
         Route::get('/customers/{customer}', [CustomerController::class, 'show'])->name('api.v1.customers.show');
@@ -70,18 +89,34 @@ Route::middleware(['auth:sanctum'])->prefix('api/v1')->group(function () {
     });
 });
 
-// Protected dashboard routes
+// ============================================================
+// PROTECTED DASHBOARD ROUTES (Inertia Pages)
+// ============================================================
+
 Route::middleware(['auth:sanctum'])->group(function () {
     Route::get('/dashboard', function () {
-        return Inertia::render('Dashboard/Overview');
+        return Inertia::render('Overview/Index');
     })->name('dashboard');
 
+    // Dynamic dashboard pages with folder mapping
     Route::get('/dashboard/{page}', function ($page) {
         $validPages = ['overview', 'reservations', 'calendar', 'tables', 'customers', 'analytics', 'settings', 'audit'];
         if (! in_array($page, $validPages)) {
             abort(404);
         }
 
-        return Inertia::render('Dashboard/'.ucfirst($page));
+        // Map route to folder structure
+        $pageMap = [
+            'overview' => 'Overview/Index',
+            'reservations' => 'Reservations/Index',
+            'calendar' => 'Calendar/Index',
+            'tables' => 'Tables/Index',
+            'customers' => 'Customers/Index',
+            'analytics' => 'Analytics/Index',
+            'settings' => 'Settings/Restaurant',
+            'audit' => 'AuditLog/Index',
+        ];
+
+        return Inertia::render($pageMap[$page]);
     })->name('dashboard.page');
 });

@@ -1,14 +1,15 @@
 import React, { ReactNode } from 'react';
+import { usePage } from '@inertiajs/react';
+import { PageProps } from '@/types';
 import Sidebar from './Sidebar';
 import Topbar from './Topbar';
-import { usePage } from '@inertiajs/react';
 
 interface DashboardLayoutProps {
   children: ReactNode;
 }
 
 export default function DashboardLayout({ children }: DashboardLayoutProps) {
-  const { user } = usePage().props;
+  const { user } = usePage<PageProps>().props;
 
   return (
     <div className="app-shell">

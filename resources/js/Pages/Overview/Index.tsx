@@ -1,9 +1,13 @@
-import React from 'react';
+import React, { useState } from 'react';
+import { usePage } from '@inertiajs/react';
+import { PageProps } from '@/types';
 import DashboardLayout from '@/Components/Layout/DashboardLayout';
 import KpiCard from '@/Components/Common/KpiCard';
 import RevenueChart from '@/Components/Charts/RevenueChart';
 import StatusDoughnut from '@/Components/Charts/StatusDoughnut';
 import { useApi } from '@/hooks/useApi';
+import Toast from '@/Components/Common/Toast';
+import { formatDate, formatTime } from '@/lib/timezone';
 
 interface KpiData {
   todayReservations: number;
@@ -39,13 +43,47 @@ interface ActivityItem {
   time: string;
 }
 
-export default function Overview() {
-  const { data: kpis, loading: kpisLoading, error: kpisError } = useApi<KpiData>('/dashboard/kpis');
-  const { data: revenueTrend, loading: revenueLoading } = useApi<RevenueTrendData>('/dashboard/revenue-trend');
-  const { data: statusBreakdown, loading: statusLoading } = useApi<StatusBreakdownData>('/dashboard/status-breakdown');
-  const { data: activity, loading: activityLoading } = useApi<ActivityItem[]>('/activity');
+interface TodayReservation {
+  id: number;
+  guest_name: string;
+  time: string;
+  party_size: number;
+  status: string;
+  table: { code: string } | null;
+}
 
-  const isLoading = kpisLoading || revenueLoading || statusLoading || activityLoading;
+export default function Overview() {
+  const { restaurant } = usePage<PageProps>().props;
+  const timezone = restaurant?.timezone || 'Africa/Harare';
+  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'info' } | null>(null);
+
+  // Fetch data
+  const { data: kpis, loading: kpisLoading, error: kpisError, refetch: refetchKpis } = useApi<KpiData>('/dashboard/kpis');
+  const { data: revenueTrend, loading: revenueLoading, refetch: refetchRevenue } = useApi<RevenueTrendData>('/dashboard/revenue-trend');
+  const { data: statusBreakdown, loading: statusLoading, refetch: refetchStatus } = useApi<StatusBreakdownData>('/dashboard/status-breakdown');
+  const { data: activity, loading: activityLoading, refetch: refetchActivity } = useApi<ActivityItem[]>('/activity');
+  
+  // Fetch today's reservations
+  const today = new Date().toISOString().split('T')[0];
+  const { data: todayReservations, loading: todayLoading } = useApi<{ data: TodayReservation[] }>(
+    '/reservations',
+    { from: today, to: today, per_page: 10 }
+  );
+
+  const isLoading = kpisLoading || revenueLoading || statusLoading || activityLoading || todayLoading;
+
+  const showToast = (message: string, type: 'success' | 'error' | 'info' = 'info') => {
+    setToast({ message, type });
+    setTimeout(() => setToast(null), 3000);
+  };
+
+  const handleRefresh = () => {
+    refetchKpis();
+    refetchRevenue();
+    refetchStatus();
+    refetchActivity();
+    showToast('Dashboard refreshed', 'info');
+  };
 
   if (isLoading) {
     return (
@@ -66,6 +104,9 @@ export default function Overview() {
           <i className="bi bi-exclamation-triangle text-rust" style={{ fontSize: '2rem' }}></i>
           <h5 className="mt-3 fw-bold">Failed to load dashboard</h5>
           <p className="text-muted-soft">{kpisError}</p>
+          <button className="btn btn-gold mt-3" onClick={handleRefresh}>
+            <i className="bi bi-arrow-counterclockwise me-1"></i> Retry
+          </button>
         </div>
       </DashboardLayout>
     );
@@ -98,9 +139,31 @@ export default function Overview() {
   const revenueData = revenueTrend || { labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'], thisWeek: [], lastWeek: [] };
   const statusData = statusBreakdown || { labels: ['Confirmed', 'Upcoming', 'Completed', 'Cancelled'], values: [] };
   const activityData = activity || [];
+  const todayData = todayReservations?.data || [];
+
+  const getStatusBadgeClass = (status: string): string => {
+    switch (status) {
+      case 'Confirmed': return 'confirmed';
+      case 'Cancelled': return 'cancelled';
+      case 'Completed': return 'completed';
+      default: return 'upcoming';
+    }
+  };
 
   return (
     <DashboardLayout>
+      {/* Header with Refresh */}
+      <div className="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4">
+        <div>
+          <h3 className="fw-bold mb-1">Overview</h3>
+          <p className="text-muted-soft mb-0 small">Real-time dashboard for your restaurant.</p>
+        </div>
+        <button className="btn btn-dark-ghost btn-sm" onClick={handleRefresh}>
+          <i className="bi bi-arrow-counterclockwise me-1"></i> Refresh
+        </button>
+      </div>
+
+      {/* KPI Cards */}
       <div className="row g-3 mb-4">
         {kpiItems.map((item, index) => (
           <div key={index} className="col-6 col-lg-4 col-xl-2">
@@ -115,6 +178,7 @@ export default function Overview() {
         ))}
       </div>
 
+      {/* Charts */}
       <div className="row g-3 mb-3">
         <div className="col-xl-8">
           <div className="card-elev p-3 p-md-4 h-100">
@@ -137,6 +201,7 @@ export default function Overview() {
         </div>
       </div>
 
+      {/* Today's Reservations & Activity */}
       <div className="row g-3">
         <div className="col-xl-7">
           <div className="card-elev p-3 p-md-4 h-100">
@@ -144,9 +209,39 @@ export default function Overview() {
               <h6 className="fw-bold mb-0">Today's reservations</h6>
               <a href="/dashboard/reservations" className="small text-gold">View all <i className="bi bi-arrow-right"></i></a>
             </div>
-            <div id="todayResList">
-              <div className="text-muted-soft small py-3">No reservations for today.</div>
-            </div>
+            {todayData.length === 0 ? (
+              <div className="text-muted-soft small py-3 text-center">No reservations for today.</div>
+            ) : (
+              <div className="table-responsive">
+                <table className="table-app" style={{ fontSize: '.85rem' }}>
+                  <thead>
+                    <tr>
+                      <th>Guest</th>
+                      <th>Time</th>
+                      <th>Party</th>
+                      <th>Table</th>
+                      <th>Status</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {todayData.map((res) => (
+                      <tr key={res.id}>
+                        <td>{res.guest_name}</td>
+                        <td>{formatTime(res.time, timezone)}</td>
+                        <td>{res.party_size}</td>
+                        <td>{res.table?.code || '—'}</td>
+                        <td>
+                          <span className={`badge-status ${getStatusBadgeClass(res.status)}`}>
+                            <span className={`status-dot ${getStatusBadgeClass(res.status)}`}></span>
+                            {res.status}
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </div>
         </div>
         <div className="col-xl-5">
@@ -154,7 +249,7 @@ export default function Overview() {
             <h6 className="fw-bold mb-3">Recent activity</h6>
             <div id="activityFeed">
               {activityData.length === 0 ? (
-                <div className="text-muted-soft small py-3">No recent activity.</div>
+                <div className="text-muted-soft small py-3 text-center">No recent activity.</div>
               ) : (
                 activityData.slice(0, 12).map((item) => (
                   <div key={item.id} className="d-flex gap-3 py-2 border-bottom" style={{ borderColor: 'var(--border) !important' }}>
@@ -181,6 +276,8 @@ export default function Overview() {
           </div>
         </div>
       </div>
+
+      {toast && <Toast message={toast.message} type={toast.type} />}
     </DashboardLayout>
   );
 }
