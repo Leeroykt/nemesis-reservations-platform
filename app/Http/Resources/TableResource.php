@@ -2,10 +2,11 @@
 
 namespace App\Http\Resources;
 
+use App\Models\Table;
 use Illuminate\Http\Resources\Json\JsonResource;
 
 /**
- * @mixin \App\Models\Table
+ * @mixin Table
  */
 class TableResource extends JsonResource
 {

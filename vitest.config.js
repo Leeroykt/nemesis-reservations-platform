@@ -1,18 +1,18 @@
-import { defineConfig } from 'vitest/config'
-import react from '@vitejs/plugin-react'
-import laravel from 'laravel-vite-plugin'
+import { defineConfig } from 'vitest/config';
+import react from '@vitejs/plugin-react';
+import path from 'path';
 
 export default defineConfig({
-    plugins: [
-        react(),
-        laravel({
-            input: ['resources/css/app.css', 'resources/js/app.jsx'],
-            refresh: true,
-        }),
-    ],
-    test: {
-        environment: 'jsdom',
-        globals: true,
-        setupFiles: './vitest.setup.js',
+  plugins: [react()],
+  resolve: {
+    alias: {
+      '@': path.resolve(__dirname, 'resources/js'),
     },
-})
+  },
+  test: {
+    environment: 'jsdom',
+    globals: true,
+    setupFiles: ['./vitest.setup.ts'],
+    include: ['resources/js/__tests__/**/*.test.{ts,tsx}'],
+  },
+});

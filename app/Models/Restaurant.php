@@ -2,11 +2,14 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Carbon;
 
 /**
- * @mixin \Illuminate\Database\Eloquent\Builder
- * @mixin \Illuminate\Database\Eloquent\Model
+ * @mixin Builder
+ * @mixin Model
  *
  * @method static \Illuminate\Database\Eloquent\Model|null find($id)
  * @method static \Illuminate\Database\Eloquent\Builder where($column, $operator = null, $value = null, $boolean = 'and')
@@ -23,18 +26,18 @@ use Illuminate\Database\Eloquent\Model;
  * @property int $tables_count
  * @property string|null $logo_path
  * @property string $primary_color_hex
- * @property \Illuminate\Support\Carbon $created_at
- * @property \Illuminate\Support\Carbon $updated_at
- * @property-read \App\Models\RestaurantRules|null $rules
- * @property-read \Illuminate\Database\Eloquent\Collection|\App\Models\RestaurantHours[] $hours
- * @property-read \Illuminate\Database\Eloquent\Collection|\App\Models\User[] $users
- * @property-read \Illuminate\Database\Eloquent\Collection|\App\Models\Table[] $tables
- * @property-read \Illuminate\Database\Eloquent\Collection|\App\Models\Reservation[] $reservations
- * @property-read \Illuminate\Database\Eloquent\Collection|\App\Models\Customer[] $customers
- * @property-read \Illuminate\Database\Eloquent\Collection|\App\Models\Notification[] $notifications
- * @property-read \Illuminate\Database\Eloquent\Collection|\App\Models\ActivityLog[] $activityLog
- * @property-read \Illuminate\Database\Eloquent\Collection|\App\Models\Waitlist[] $waitlist
- * @property-read \Illuminate\Database\Eloquent\Collection|\App\Models\EmailTemplate[] $emailTemplates
+ * @property Carbon $created_at
+ * @property Carbon $updated_at
+ * @property-read RestaurantRules|null $rules
+ * @property-read Collection|RestaurantHours[] $hours
+ * @property-read Collection|User[] $users
+ * @property-read Collection|Table[] $tables
+ * @property-read Collection|Reservation[] $reservations
+ * @property-read Collection|Customer[] $customers
+ * @property-read Collection|Notification[] $notifications
+ * @property-read Collection|ActivityLog[] $activityLog
+ * @property-read Collection|Waitlist[] $waitlist
+ * @property-read Collection|EmailTemplate[] $emailTemplates
  */
 class Restaurant extends Model
 {

@@ -2,10 +2,11 @@
 
 namespace App\Http\Resources;
 
+use App\Models\Customer;
 use Illuminate\Http\Resources\Json\JsonResource;
 
 /**
- * @mixin \App\Models\Customer
+ * @mixin Customer
  */
 class CustomerResource extends JsonResource
 {
@@ -22,7 +23,11 @@ class CustomerResource extends JsonResource
             'lifetime_spend' => $this->lifetime_spend,
             'preferences' => $this->whenLoaded('preferences', function () {
                 return $this->preferences->pluck('note');
-            }),
+            }, []),
+            // Always include the key, even if reservations are not loaded
+            'reservations' => $this->whenLoaded('reservations', function () {
+                return ReservationResource::collection($this->reservations);
+            }, []),
             'created_at' => $this->created_at,
         ];
     }

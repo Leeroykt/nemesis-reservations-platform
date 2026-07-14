@@ -10,6 +10,7 @@ class TimezoneService
     {
         $time = substr($time, 0, 5);
         $date = substr($date, 0, 10);
+
         return Carbon::createFromFormat('Y-m-d H:i', "$date $time", $timezone)->utc();
     }
 
@@ -26,6 +27,7 @@ class TimezoneService
     public static function formatTime(string $time, string $timezone): string
     {
         $time = substr($time, 0, 5);
+
         return Carbon::createFromFormat('H:i', $time, $timezone)->format('H:i');
     }
 }

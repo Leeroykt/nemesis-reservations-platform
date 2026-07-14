@@ -2,11 +2,13 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Carbon;
 
 /**
- * @mixin \Illuminate\Database\Eloquent\Builder
- * @mixin \Illuminate\Database\Eloquent\Model
+ * @mixin Builder
+ * @mixin Model
  *
  * @method static \Illuminate\Database\Eloquent\Model|null find($id)
  * @method static \Illuminate\Database\Eloquent\Builder where($column, $operator = null, $value = null, $boolean = 'and')
@@ -21,9 +23,9 @@ use Illuminate\Database\Eloquent\Model;
  * @property string $description
  * @property string|null $entity_type
  * @property int|null $entity_id
- * @property \Illuminate\Support\Carbon $created_at
- * @property-read \App\Models\Restaurant $restaurant
- * @property-read \App\Models\User|null $actor
+ * @property Carbon $created_at
+ * @property-read Restaurant $restaurant
+ * @property-read User|null $actor
  */
 class ActivityLog extends Model
 {

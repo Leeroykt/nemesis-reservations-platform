@@ -2,10 +2,11 @@
 
 namespace App\Http\Resources;
 
+use App\Models\Reservation;
 use Illuminate\Http\Resources\Json\JsonResource;
 
 /**
- * @mixin \App\Models\Reservation
+ * @mixin Reservation
  */
 class ReservationResource extends JsonResource
 {

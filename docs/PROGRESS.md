@@ -1,6 +1,6 @@
 # NEMESIS Reservations Platform – Progress Tracking
 
-**Last Updated:** 2026-07-12
+**Last Updated:** 2026-07-14
 
 This document tracks our progress against the original documentation (`docs/04-ROADMAP.md`, `docs/02-FEATURE-SPEC.md`, `docs/01-DATABASE-SCHEMA.md`). It records every deviation, new file introduced, version change, and decisions made.
 
@@ -10,10 +10,11 @@ This document tracks our progress against the original documentation (`docs/04-R
 
 | Phase | Status | Notes |
 |-------|--------|-------|
-| Phase 0 – Repo & Environment | ✅ Complete | Laravel 12 installed (instead of Laravel 11), Docker skipped |
+| Phase 0 – Repo & Environment | ✅ Complete | Laravel 12 installed (instead of Laravel 11), Docker skipped (deferred to Phase 7) |
 | Phase 1 – Database & Models | ✅ Complete | All 12 tables + models; DemoSeeder matches data.js 1:1 |
-| Phase 2.1 – Auth Endpoints | ✅ Complete | Sanctum login/logout/me endpoints working |
-| Phase 2.2 – Role Enforcement | ⏳ Next | EnsureRole, policies, RoleAccessTest pending |
+| Phase 2 – Auth & Role Enforcement | ✅ Complete | Sanctum SPA auth, EnsureRole middleware, RoleAccessTest passes |
+| Phase 3 – Reservation Engine | ✅ Complete | ReservationService, CRUD + bulk, AuditLogger, feature tests pass |
+| Phase 4 – Wire Dashboard UI to API | 🔄 In Progress | Overview page done; Reservations, Calendar, Tables, Customers, Analytics pending |
 
 ---
 
@@ -70,6 +71,7 @@ These files were not explicitly listed in `03-PROJECT-STRUCTURE.md` but were add
 | File | Reason |
 |------|--------|
 | `database/migrations/2026_07_12_205049_add_restaurant_role_columns_to_users_table.php` | Extended `users` table to match schema |
+| `database/migrations/2026_07_13_104357_add_revenue_and_avg_spend_to_tables.php` | Added revenue and avg_spend_per_person columns |
 | `app/Http/Controllers/Api/V1/AuthController.php` | Auth endpoints (login, logout, me) |
 | `app/Http/Requests/LoginRequest.php` | Login validation |
 | `routes/api.php` | API routes (not just web routes) |
@@ -123,125 +125,78 @@ These files were not explicitly listed in `03-PROJECT-STRUCTURE.md` but were add
 - We added a migration to extend the `users` table with missing columns (`restaurant_id`, `role`, `avatar_initials`, `last_login_at`).
 - `ActivityLog` and `Waitlist` models required explicit `$table` definitions because the table names are singular, not plural.
 
-### Larastan Fix – createToken return type
-- **Issue:** PHPStan thought `createToken()` returned a string, but it returns `NewAccessToken`.
-- **Fix:** Corrected `@method` annotation in `User` to return `\Laravel\Sanctum\NewAccessToken`.
-- **Also:** Added `@var` docblock for `$token` in `AuthController`.
-- **Files affected:** `app/Models/User.php`, `app/Http/Controllers/Api/V1/AuthController.php`
-### 8. CI Tools – Postponed to Phase 8
+---
 
-| Tool | Purpose | Status | Reason |
-|------|---------|--------|--------|
-| `composer audit` | Scans PHP dependencies for known vulnerabilities | ⏳ Phase 8 | Would require fixing all vulnerabilities before pipeline passes |
-| `npm audit --audit-level=moderate` | Scans JS dependencies for vulnerabilities | ⏳ Phase 8 | Would fail immediately due to 4 existing vulnerabilities |
-| ESLint (`npm run lint:js`) | JavaScript/TypeScript code style and quality | ⏳ Phase 8 | ESLint needs to be installed and configured with rules |
-| TypeScript type check (`tsc --noEmit`) | Catches type errors in frontend code | ⏳ Phase 8 | TypeScript config needs adjustment for CI environment |
-| PHP test coverage (`--coverage --min=80`) | Ensures code is adequately tested | ⏳ Phase 8 | Coverage thresholds would fail until tests are written |
-| JavaScript test coverage (Vitest) | Ensures frontend code is adequately tested | ⏳ Phase 8 | Coverage is not yet configured |
-| Security headers check | Checks CSP, CORS, etc. | ⏳ Phase 9+ | Not critical for development phase |
-| Artisan optimize | Ensures production caching works | ⏳ Phase 7 (Deployment) | Only relevant for production builds |
-
-**Why Postponed:**
-
-- **Prevents blocking development** – These tools would fail immediately and block every PR, slowing down core feature development.
-- **They are hardening steps** – Security audits, coverage thresholds, and strict type checks are final‑stage activities – they belong in Phase 8 (Hardening & QA), not during active feature development.
-- **No code quality degradation** – The current CI (Lint, Larastan, Pest, Vitest, Build) already enforces code quality and catches real bugs. Adding the rest later is an incremental improvement, not an emergency fix.
-- **Avoids unnecessary overhead** – Installing ESLint and configuring TypeScript for CI takes time that would distract from building features in Phases 3–7.
-
-**Decision:** These tools will be added in Phase 8 (Hardening & QA) or Phase 9 (Final polish), as originally planned in `04-ROADMAP.md`.
-
-## ✅ Phase 2.1 – Checklist
+## ✅ Phase 2 – Checklist
 
 ### Docs: `04-ROADMAP.md` Phase 2, `02-FEATURE-SPEC.md` §1
 
 | Item | Docs Says | What We Did | Status |
 |------|-----------|-------------|--------|
-| Sanctum SPA auth | Session-based | Sanctum token-based (Bearer tokens) | ✅ (deviation) |
+| Sanctum SPA auth | Session-based | Sanctum cookie-based (SPA) | ✅ |
 | `POST /api/v1/login` | Yes | Implemented | ✅ |
 | `POST /api/v1/logout` | Yes | Implemented | ✅ |
 | `GET /api/v1/me` | Yes | Implemented | ✅ |
-| Server-enforced role | Yes | Not yet – coming in Phase 2.2 | ⏳ |
-| Routes | Protected by auth middleware | Routes use `auth:sanctum` | ✅ |
+| `EnsureRole` middleware | Applied per-route | Created and registered | ✅ |
+| `RoleAccessTest.php` | Automated role gating test | 10 tests pass | ✅ |
 
 **Comments:**
-- We use **Bearer tokens** instead of session cookies. This is still Sanctum, just the token-based flow. It works for v1 and can be switched to cookies later if needed.
+- We use **Sanctum cookie-based SPA authentication** (with `withCredentials`), which is the recommended pattern for first-party SPAs. This aligns with the product spec.
 
 ---
 
-## 🚫 What Was Not Done Yet (Phase 2.2+)
+## ✅ Phase 3 – Checklist
 
-- `EnsureRole` middleware – **Pending Phase 2.2**
-- `ReservationPolicy` – **Pending Phase 2.2**
-- `RoleAccessTest.php` – **Pending Phase 2.2**
-- Routes with `role:...` middleware – **Pending Phase 2.2**
+### Docs: `04-ROADMAP.md` Phase 3, `02-FEATURE-SPEC.md` §3
+
+| Item | Docs Says | What We Did | Status |
+|------|-----------|-------------|--------|
+| `ReservationService` | Conflict detection, validation | Implemented and tested | ✅ |
+| Reservation CRUD + bulk actions API | Yes | Full controller | ✅ |
+| `AuditLogger` | Wired to every mutation | Implemented | ✅ |
+| Feature tests | Double-booking, over-capacity, over-max-party, bulk actions | 17 tests pass | ✅ |
+
+**Comments:**
+- The service uses real database data; no static values.
+- Revenue is computed from `avg_spend_per_person` stored in `restaurant_rules`.
+
+---
+
+## 🔄 Phase 4 – Checklist
+
+### Docs: `04-ROADMAP.md` Phase 4, `02-FEATURE-SPEC.md`
+
+| Item | Docs Says | What We Did | Status |
+|------|-----------|-------------|--------|
+| Build `api.js` (API client) | Replaces `SAVORA_DATA`/`SavoraStore` | Created `resources/js/lib/api.ts` | ✅ |
+| `guard.js` checks real session | `/api/v1/me` | Implemented via `api.ts` and `useAuth` | ✅ |
+| `auth.js` posts to real login | `/api/v1/login` | Implemented | ✅ |
+| Overview screen | Real KPIs, charts, activity | Fetches from `/api/v1/dashboard/*` and `/api/v1/activity` | ✅ |
+| Reservations screen | List, filters, search, pagination, modals | ⏳ Pending |
+| Calendar screen | Month and week views | ⏳ Pending |
+| Tables screen | Floor plan and grid | ⏳ Pending |
+| Customers screen | List, search, profile | ⏳ Pending |
+| Analytics screen | Peak hours, popular tables, customer growth | ⏳ Pending |
+
+**Comments:**
+- The API client and authentication layer are fully implemented and tested.
+- The Overview page is complete and displays real data from the database.
+- The remaining screens will be built in subsequent steps, following the same pattern.
 
 ---
 
 ## 📋 Next Steps
 
-1. **Phase 2.2** – Role-Based Access Control:
-   - Implement `EnsureRole` middleware
-   - Register middleware in `bootstrap/app.php`
-   - Create and register `ReservationPolicy`
-   - Update routes to use `role:...`
-   - Create `RoleAccessTest.php` – executioner test
-
-2. **Commit this `PROGRESS.MD`** after Phase 2.1 is complete.
+1. **Complete Phase 4** – Build the remaining screens:
+   - Reservations (list, CRUD modals, bulk actions)
+   - Calendar (month/week views)
+   - Tables (floor plan, grid, status updates)
+   - Customers (list, search, profile)
+   - Analytics (charts)
+2. **Add frontend tests** for each new page as we build them.
+3. **Run full CI suite** after each major milestone.
+4. **Proceed to Phase 5** (Public booking + email) once Phase 4 is complete.
 
 ---
 
-**End of Progress Tracking – Phase 0, 1, 2.1**
-
-## ✅ Phase 2.2 – Checklist
-
-| Item | Status | Notes |
-|------|--------|-------|
-| `EnsureRole` middleware implemented | ✅ | Role hierarchy: host (1) < manager (2) < owner (3) |
-| Middleware registered in `bootstrap/app.php` | ✅ | Aliased as `role` |
-| `ReservationPolicy` created | ✅ | viewAny, view, create, update, delete, restore, forceDelete |
-| Policy registered in `AuthServiceProvider` | ✅ | Mapped `Reservation::class` to `ReservationPolicy::class` |
-| `RoleAccessTest` created | ✅ | 7 tests covering host/manager/owner/unauthenticated access |
-| Test annotations updated to `#[Test]` attributes | ✅ | PHPUnit 11+ compatibility |
-| PHPStan errors fixed in `EnsureRole` and `User` | ✅ | Added PHPDoc `@property` and `@var` annotations |
-| All tests pass | ✅ | 7 passed, 13 assertions |
-
-**Comments:**
-- Added temporary route `/api/v1/role-test` to demonstrate role enforcement (will be removed once real routes are built in Phase 3+).
-- The middleware and policies are fully functional and tested.
-- All static analysis checks now pass at level 5.
-- The CI will run these checks on every push.
-
-## ✅ Phase 3 – Checklist
-- ✅ ReservationService implemented (conflict detection, validation, auto‑assignment)
-- ✅ AuditLogger and TimezoneService created
-- ✅ ReservationController with CRUD and bulk actions
-- ✅ Store/Update requests and ReservationResource
-- ✅ All feature tests passing (17 tests, 61 assertions)
-- ✅ Role‑based delete and bulk actions enforced
-
-
-
-## ✅ Phase 3 – Checklist (Updated)
-
-| Item | Status | Notes |
-|------|--------|-------|
-| ReservationService (conflict detection, validation) | ✅ | Implemented and fully tested. |
-| Reservation CRUD + bulk actions API | ✅ | Controller with all endpoints. |
-| AuditLogger wired for every mutation | ✅ | Logs all create/update/delete/bulk actions. |
-| Feature tests: double-booking, over-capacity, etc. | ✅ | 17 tests pass. |
-| Timezone handling | ✅ | TimezoneService fixed to handle seconds. |
-| PHPStan level 5 passes | ✅ | All errors resolved (see below). |
-| Test isolation | ✅ | Used RefreshDatabase with shouldUseTransactions = false. |
-| Docker | ⏳ Deferred | See Phase 0 deviation. |
-
-### 🔧 Fixes Applied in Phase 3.2
-
-- Added `@mixin`, `@method`, and `@property` PHPDoc annotations to all models to make Eloquent methods and attributes known to PHPStan.
-- Changed `@var User` to `@var User|null` for `Auth::user()` and added explicit `if (!$user)` checks in `ReservationController`.
-- Fixed `Request` property access: replaced `$request->status` with `$request->input('status')` to avoid undefined property errors.
-- Simplified `AuditLogger` to use null coalescing and explicit checks for `$actor` properties.
-- Fixed `str_pad` type by casting `random_int()` result to string.
-- Updated `TimezoneService` to strip seconds and extra characters from date/time strings.
-- Increased PHPStan memory limit to `2G` in `composer.json`.
-
-These changes ensure CI passes reliably and the codebase is enterprise-grade.
+**End of Progress Tracking – Phase 0, 1, 2, 3 Complete; Phase 4 in Progress**

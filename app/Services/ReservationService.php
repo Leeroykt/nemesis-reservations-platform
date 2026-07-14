@@ -35,12 +35,11 @@ class ReservationService
             $query->where('table_id', '!=', $excludeTable->id);
         }
 
-        /** @var \Illuminate\Database\Eloquent\Collection<int, Reservation> $reservations */
         $reservations = $query->get();
         $conflictingTableIds = [];
 
         foreach ($reservations as $reservation) {
-            if (!$reservation->table_id) {
+            if (! $reservation->table_id) {
                 continue;
             }
             $resUtcStart = TimezoneService::toUtc($reservation->date, $reservation->time, $restaurant->timezone);
@@ -61,7 +60,6 @@ class ReservationService
         string $time,
         int $slotMinutes
     ): ?Table {
-        /** @var \Illuminate\Database\Eloquent\Collection<int, Table> $tables */
         $tables = Table::where('restaurant_id', $restaurant->id)
             ->where('capacity', '>=', $partySize)
             ->where('status', 'Available')
@@ -70,7 +68,8 @@ class ReservationService
         $conflictingIds = self::findConflicts($restaurant, $date, $time, $partySize, $slotMinutes, null, null);
 
         foreach ($tables as $table) {
-            if (!in_array($table->id, $conflictingIds)) {
+            /** @var Table $table */
+            if (! in_array($table->id, $conflictingIds)) {
                 return $table;
             }
         }
@@ -101,10 +100,10 @@ class ReservationService
             ]);
         }
 
-        if (!empty($data['table_id'])) {
+        if (! empty($data['table_id'])) {
             /** @var Table|null $table */
             $table = Table::find($data['table_id']);
-            if (!$table || $table->restaurant_id != $restaurant->id) {
+            if (! $table || $table->restaurant_id != $restaurant->id) {
                 throw ValidationException::withMessages([
                     'table_id' => 'Invalid table selected.',
                 ]);
@@ -134,7 +133,7 @@ class ReservationService
                 $rules->slot_length_minutes
             );
 
-            if (!$autoTable) {
+            if (! $autoTable) {
                 throw ValidationException::withMessages([
                     'table_id' => 'No available table for this time and party size.',
                 ]);
@@ -147,9 +146,48 @@ class ReservationService
     public static function generatePublicRef(Restaurant $restaurant): string
     {
         do {
-            $ref = 'RB-' . str_pad((string) random_int(1000, 9999), 4, '0', STR_PAD_LEFT);
+            $ref = 'RB-'.str_pad((string) random_int(1000, 9999), 4, '0', STR_PAD_LEFT);
         } while (Reservation::where('restaurant_id', $restaurant->id)->where('public_ref', $ref)->exists());
 
         return $ref;
+    }
+
+    public static function createReservation(array $data, Restaurant $restaurant): Reservation
+    {
+        self::validateReservation($data, $restaurant);
+
+        if (empty($data['table_id']) && isset($data['auto_assigned_table_id'])) {
+            $data['table_id'] = $data['auto_assigned_table_id'];
+            unset($data['auto_assigned_table_id']);
+        }
+
+        $avgSpend = $restaurant->rules->avg_spend_per_person ?? 25;
+        $data['revenue'] = $data['party_size'] * $avgSpend;
+
+        $data['public_ref'] = self::generatePublicRef($restaurant);
+
+        if (empty($data['status'])) {
+            $data['status'] = 'Upcoming';
+        }
+        if (empty($data['source'])) {
+            $data['source'] = 'App';
+        }
+
+        return $restaurant->reservations()->create($data);
+    }
+
+    public static function updateReservation(Reservation $reservation, array $data, Restaurant $restaurant): Reservation
+    {
+        $merged = array_merge($reservation->toArray(), $data);
+        self::validateReservation($merged, $restaurant);
+
+        if (isset($data['party_size']) && $data['party_size'] != $reservation->party_size) {
+            $avgSpend = $restaurant->rules->avg_spend_per_person ?? 25;
+            $data['revenue'] = $data['party_size'] * $avgSpend;
+        }
+
+        $reservation->update($data);
+
+        return $reservation;
     }
 }

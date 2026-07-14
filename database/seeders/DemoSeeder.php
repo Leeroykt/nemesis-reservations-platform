@@ -47,6 +47,7 @@ class DemoSeeder extends Seeder
             'buffer_minutes' => 15,
             'cancellation_window_hours' => 4,
             'deposit_required_above' => 8,
+            'avg_spend_per_person' => 25, // <-- add this
         ]);
 
         // 4. Create Users (Staff)

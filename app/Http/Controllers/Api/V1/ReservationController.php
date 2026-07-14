@@ -25,14 +25,14 @@ class ReservationController extends Controller
         /** @var User|null $user */
         $user = Auth::user();
 
-        if (!$user) {
+        if (! $user) {
             abort(401, 'Unauthenticated.');
         }
 
         /** @var Restaurant|null $restaurant */
         $restaurant = Restaurant::find($user->restaurant_id);
 
-        if (!$restaurant) {
+        if (! $restaurant) {
             abort(404, 'Restaurant not found.');
         }
 
@@ -51,7 +51,7 @@ class ReservationController extends Controller
         }
 
         if ($request->has('search')) {
-            $query->where('guest_name', 'like', '%' . $request->input('search') . '%');
+            $query->where('guest_name', 'like', '%'.$request->input('search').'%');
         }
 
         $perPage = $request->input('per_page', 25);
@@ -65,14 +65,14 @@ class ReservationController extends Controller
         /** @var User|null $user */
         $user = Auth::user();
 
-        if (!$user) {
+        if (! $user) {
             abort(401, 'Unauthenticated.');
         }
 
         /** @var Restaurant|null $restaurant */
         $restaurant = Restaurant::find($user->restaurant_id);
 
-        if (!$restaurant) {
+        if (! $restaurant) {
             abort(404, 'Restaurant not found.');
         }
 
@@ -110,6 +110,7 @@ class ReservationController extends Controller
     public function show(Reservation $reservation)
     {
         $this->authorize('view', $reservation);
+
         return new ReservationResource($reservation->load(['table', 'createdBy']));
     }
 
@@ -120,14 +121,14 @@ class ReservationController extends Controller
         /** @var User|null $user */
         $user = Auth::user();
 
-        if (!$user) {
+        if (! $user) {
             abort(401, 'Unauthenticated.');
         }
 
         /** @var Restaurant|null $restaurant */
         $restaurant = Restaurant::find($user->restaurant_id);
 
-        if (!$restaurant) {
+        if (! $restaurant) {
             abort(404, 'Restaurant not found.');
         }
 
@@ -159,7 +160,7 @@ class ReservationController extends Controller
         /** @var User|null $user */
         $user = Auth::user();
 
-        if (!$user) {
+        if (! $user) {
             abort(401, 'Unauthenticated.');
         }
 
@@ -182,14 +183,14 @@ class ReservationController extends Controller
         /** @var User|null $user */
         $user = Auth::user();
 
-        if (!$user) {
+        if (! $user) {
             abort(401, 'Unauthenticated.');
         }
 
         $action = $request->input('action');
         $ids = $request->input('ids', []);
 
-        if (!in_array($action, ['confirm', 'cancel', 'delete'])) {
+        if (! in_array($action, ['confirm', 'cancel', 'delete'])) {
             throw ValidationException::withMessages([
                 'action' => 'Invalid action. Allowed: confirm, cancel, delete.',
             ]);
@@ -225,13 +226,13 @@ class ReservationController extends Controller
 
         AuditLogger::log(
             $user,
-            "Bulk $action on " . count($ids) . ' reservation(s)',
+            "Bulk $action on ".count($ids).' reservation(s)',
             'reservation',
             null,
             'bi-layers',
             'slate'
         );
 
-        return response()->json(['message' => "$action completed for " . count($ids) . ' reservation(s).']);
+        return response()->json(['message' => "$action completed for ".count($ids).' reservation(s).']);
     }
 }

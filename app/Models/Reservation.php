@@ -2,12 +2,14 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Carbon;
 
 /**
- * @mixin \Illuminate\Database\Eloquent\Builder
- * @mixin \Illuminate\Database\Eloquent\Model
+ * @mixin Builder
+ * @mixin Model
  *
  * @method static \Illuminate\Database\Eloquent\Model|null find($id)
  * @method static \Illuminate\Database\Eloquent\Builder where($column, $operator = null, $value = null, $boolean = 'and')
@@ -28,13 +30,13 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  * @property string|null $notes
  * @property string $source
  * @property int|null $created_by_user_id
- * @property \Illuminate\Support\Carbon|null $deleted_at
- * @property \Illuminate\Support\Carbon $created_at
- * @property \Illuminate\Support\Carbon $updated_at
- * @property-read \App\Models\Restaurant $restaurant
- * @property-read \App\Models\Customer|null $customer
- * @property-read \App\Models\Table|null $table
- * @property-read \App\Models\User|null $createdBy
+ * @property Carbon|null $deleted_at
+ * @property Carbon $created_at
+ * @property Carbon $updated_at
+ * @property-read Restaurant $restaurant
+ * @property-read Customer|null $customer
+ * @property-read Table|null $table
+ * @property-read User|null $createdBy
  */
 class Reservation extends Model
 {
@@ -54,6 +56,7 @@ class Reservation extends Model
         'status',
         'notes',
         'source',
+        'revenue',
         'created_by_user_id',
     ];
 
@@ -65,6 +68,7 @@ class Reservation extends Model
         'date' => 'date',
         'time' => 'string',
         'status' => 'string',
+        'revenue' => 'decimal:2',
     ];
 
     public function restaurant()

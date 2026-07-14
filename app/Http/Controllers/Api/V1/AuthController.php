@@ -4,49 +4,36 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\LoginRequest;
-use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\ValidationException;
-use Laravel\Sanctum\NewAccessToken;
 
 class AuthController extends Controller
 {
-    /**
-     * Login user and return token + user data.
-     * POST /api/v1/login
-     */
     public function login(LoginRequest $request)
     {
         $credentials = $request->only('email', 'password');
 
-        if (! Auth::attempt($credentials)) {
+        if (! Auth::attempt($credentials, $request->boolean('remember'))) {
             throw ValidationException::withMessages([
                 'email' => ['The provided credentials are incorrect.'],
             ]);
         }
 
-        /** @var User $user */
-        $user = Auth::user();
-
-        /** @var NewAccessToken $token */
-        $token = $user->createToken('auth_token');
+        $request->session()->regenerate();
 
         return response()->json([
             'data' => [
-                'user' => $user,
-                'token' => $token->plainTextToken,
+                'user' => Auth::user(),
             ],
         ]);
     }
 
-    /**
-     * Logout user (revoke token).
-     * POST /api/v1/logout
-     */
     public function logout(Request $request)
     {
-        $request->user()->currentAccessToken()->delete();
+        Auth::logout();
+        $request->session()->invalidate();
+        $request->session()->regenerateToken();
 
         return response()->json([
             'data' => null,
@@ -54,10 +41,6 @@ class AuthController extends Controller
         ]);
     }
 
-    /**
-     * Get authenticated user.
-     * GET /api/v1/me
-     */
     public function me(Request $request)
     {
         return response()->json([
